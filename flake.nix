@@ -66,7 +66,7 @@
             # 2) Frontend: instala node_modules la primera vez y arranca next dev.
             if [ ! -d web/node_modules ]; then
               echo "→ Instalando dependencias del frontend (solo la primera vez)..."
-              (cd web && npm install --silent) || echo "  Aviso: falló npm install."
+              (cd web && npm ci --silent) || echo "  Aviso: falló npm ci."
             fi
             if corriendo frontend; then
               echo "→ Frontend ya está corriendo."

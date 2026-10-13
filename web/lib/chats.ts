@@ -6,7 +6,7 @@
  * módulo es el que cambia por llamadas a la API.
  */
 
-import type { Anotacion } from "./tutorSimulado";
+import type { Anotacion } from "./contrato";
 
 export type Mensaje = {
   id: string;

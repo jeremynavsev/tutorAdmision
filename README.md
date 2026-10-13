@@ -42,6 +42,7 @@ prototipo/
 │   ├── components/          BarraLateral, Bienvenida, Conversacion, Redactor, Pizarra,
 │   │                        AvisoEntrada, Toasts, BotonTema, Logo, Iconos
 │   └── lib/
+│       ├── contrato.ts      Tipos del contrato del tutor (espejo de esquemas.py)
 │       ├── api.ts           Funciones para llamar al backend
 │       ├── tutorSimulado.ts Tutor de prueba (se reemplaza por la llamada real)
 │       ├── chats.ts         Historial de chats (por ahora en localStorage)
@@ -62,7 +63,12 @@ prototipo/
 | GET    | `/api/salud`      | `{"ok": true}`                                        |
 | GET    | `/api/ejercicios` | Dos ejercicios de ejemplo (sin solución)              |
 | POST   | `/api/sesiones`   | `{"ok": true}`                                        |
-| POST   | `/api/chat`       | `"Modo de prueba: aquí responderá el tutor."`         |
+| POST   | `/api/chat`       | Texto fijo de prueba, ya con la forma del contrato    |
+
+`POST /api/chat` recibe `mensaje`, `imagen_base64` (opcional), `historial` y `contexto`
+(`enunciado` en la pizarra y `pistas_dadas`), y devuelve `texto`, `pista` (1–3 o `null`),
+`anotaciones` para la pizarra y `proveedor`. El contrato completo está en
+`backend/app/esquemas.py` y su espejo para el frontend en `web/lib/contrato.ts`.
 
 ## Cómo correrlo en Fedora
 

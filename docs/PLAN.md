@@ -8,13 +8,34 @@ se hace que el modelo consulte un banco de ejercicios revisados mientras convers
 se mide con evaluaciones. El ajuste fino (fine-tuning) queda para el final, solo si las
 evaluaciones muestran que hace falta.
 
+## Cómo trabajamos: una rama por fase
+
+Cada fase se hace en su propia rama, que sale de `main` actualizado. Al terminarla, se
+abre un pull request hacia `main`; se fusiona cuando pasan las pruebas
+(`pytest` en `backend/` y `npm run build` en `web/`). La siguiente fase sale de `main`
+ya con la anterior incluida.
+
+| Fase | Rama                    |
+| ---- | ----------------------- |
+| 0    | `fase-0-contrato`       |
+| 1    | `fase-1-backend-ia`     |
+| 2    | `fase-2-conexion`       |
+| 3    | `fase-3-seguridad`      |
+| 4    | `fase-4-banco`          |
+| 5    | `fase-5-entrenamiento`  |
+| 6    | `fase-6-despliegue`     |
+
+La fase 4 (banco de ejercicios) puede avanzar en paralelo a las fases 1–3, porque toca
+otros archivos.
+
 ## Fase 0 — Cerrar el prototipo (1–2 días)
 
-- [ ] `git init` y primer commit (incluyendo `flake.nix` y `flake.lock`: Nix solo ve los
+- [x] `git init` y primer commit (incluyendo `flake.nix` y `flake.lock`: Nix solo ve los
       archivos que git rastrea).
-- [ ] Definir el **contrato del tutor** en `backend/app/esquemas.py`: lo que recibe
+- [x] Definir el **contrato del tutor** en `backend/app/esquemas.py`: lo que recibe
       (mensaje, foto, historial, enunciado en la pizarra, pistas dadas) y lo que devuelve
-      (`texto`, `pista`, `anotaciones`). Hoy vive en `web/lib/tutorSimulado.ts`.
+      (`texto`, `pista`, `anotaciones`). Quedó en `backend/app/esquemas.py` y su espejo
+      en `web/lib/contrato.ts`, con pruebas en `backend/tests/test_chat.py`.
 
 ## Fase 1 — Backend con IA real (1–2 semanas)
 

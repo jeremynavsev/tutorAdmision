@@ -11,10 +11,11 @@ import Redactor from "@/components/Redactor";
 import Toasts, { type Toast } from "@/components/Toasts";
 import { cargarChats, guardarChats, nuevoId, tituloDesde, type Chat, type Mensaje } from "@/lib/chats";
 import { guardarBandera, leerBandera } from "@/lib/tema";
-import { tutorSimulado, type Contexto, type EntradaTutor } from "@/lib/tutorSimulado";
+import { MAX_HISTORIAL, type Contexto, type EntradaTutor, type Tutor } from "@/lib/contrato";
+import { tutorSimulado } from "@/lib/tutorSimulado";
 
-// Para el tutor real, solo cambia esta línea por una función con la misma firma.
-const tutor = tutorSimulado;
+// Para el tutor real, solo cambia esta línea por otra función que cumpla `Tutor`.
+const tutor: Tutor = tutorSimulado;
 
 const CLAVE_AVISO = "maestro-aviso-aceptado";
 const SIN_ANOTACIONES: Chat["anotaciones"] = [];
@@ -28,7 +29,23 @@ function contextoDe(chat: Chat | undefined): Contexto {
   return {
     enunciado: enunciado?.tipo === "enunciado" ? enunciado.texto : null,
     pistasDadas: chat ? chat.mensajes.filter((m) => m.pista).length : 0,
+    // Los últimos mensajes; las fotos viajan solo una vez, aquí quedan como una nota.
+    historial: (chat?.mensajes ?? []).slice(-MAX_HISTORIAL).map((m) => ({
+      autor: m.autor,
+      texto: m.texto || (m.foto ? "[El estudiante mandó una foto del cuaderno]" : ""),
+      pista: m.pista,
+    })),
   };
+}
+
+/** Lee la foto como base64, sin el prefijo "data:image/...;base64,". */
+function leerBase64(archivo: File): Promise<string> {
+  return new Promise((resolver, rechazar) => {
+    const lector = new FileReader();
+    lector.onload = () => resolver(String(lector.result).split(",")[1] ?? "");
+    lector.onerror = () => rechazar(lector.error);
+    lector.readAsDataURL(archivo);
+  });
 }
 
 export default function Inicio() {
@@ -130,10 +147,22 @@ export default function Inicio() {
     conversar({ id: nuevoId(), autor: "estudiante", texto }, { texto });
   }
 
-  function enviarFoto(archivo: File) {
+  async function enviarFoto(archivo: File) {
     const id = nuevoId();
     setFotos((f) => ({ ...f, [id]: URL.createObjectURL(archivo) }));
     setCargandoFotos((s) => new Set(s).add(id));
+    let fotoBase64: string;
+    try {
+      fotoBase64 = await leerBase64(archivo);
+    } catch {
+      setCargandoFotos((s) => {
+        const otro = new Set(s);
+        otro.delete(id);
+        return otro;
+      });
+      avisar("No se pudo leer la foto. Probá con otra.");
+      return;
+    }
     setTimeout(() => {
       setCargandoFotos((s) => {
         const otro = new Set(s);
@@ -142,7 +171,7 @@ export default function Inicio() {
       });
       avisar("Foto enviada.");
     }, 700);
-    conversar({ id, autor: "estudiante", texto: "", foto: true }, { texto: "", foto: true });
+    conversar({ id, autor: "estudiante", texto: "", foto: true }, { texto: "", fotoBase64 });
   }
 
   function cerrarLateralEnCelular() {

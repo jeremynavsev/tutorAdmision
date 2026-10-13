@@ -8,36 +8,11 @@
  * pista, sin dar nunca la respuesta.
  *
  * Es una función sin memoria propia: todo lo que necesita sale del `Contexto`
- * (lo que ya está en la pizarra y cuántas pistas se dieron). Para conectar el
- * tutor real, basta con otra función con la misma firma que llame al backend.
+ * (lo que ya está en la pizarra, cuántas pistas se dieron y el historial).
+ * Cumple el tipo `Tutor` de ./contrato.ts, igual que lo hará el tutor real.
  */
 
-/** Lo que el tutor le pide a la pizarra que dibuje. */
-export type Anotacion =
-  /** Copia el problema en la pizarra. */
-  | { tipo: "enunciado"; texto: string }
-  /** Encierra en un círculo un dato que aparece en el enunciado. */
-  | { tipo: "circulo"; dato: string }
-  /** Escribe una línea con tiza. */
-  | { tipo: "apunte"; texto: string };
-
-export type RespuestaTutor = {
-  texto: string;
-  /** Número de pista (1, 2 o 3) si la respuesta es una pista. */
-  pista?: 1 | 2 | 3;
-  anotaciones: Anotacion[];
-};
-
-export type EntradaTutor = { texto: string; foto?: boolean };
-
-export type Contexto = {
-  /** Enunciado que ya está en la pizarra, si hay. */
-  enunciado: string | null;
-  /** Pistas que ya se dieron en esta conversación. */
-  pistasDadas: number;
-};
-
-export type Tutor = (entrada: EntradaTutor, contexto: Contexto) => Promise<RespuestaTutor>;
+import type { Contexto, EntradaTutor, RespuestaTutor, Tutor } from "./contrato";
 
 const PISTAS: RespuestaTutor[] = [
   {
@@ -96,10 +71,10 @@ function siguientePista(pistasDadas: number, prefacio = ""): RespuestaTutor {
   return { ...pista, texto: prefacio + pista.texto };
 }
 
-function responderSincrono({ texto, foto }: EntradaTutor, { enunciado, pistasDadas }: Contexto): RespuestaTutor {
+function responderSincrono({ texto, fotoBase64 }: EntradaTutor, { enunciado, pistasDadas }: Contexto): RespuestaTutor {
   const t = normalizar(texto);
 
-  if (foto) {
+  if (fotoBase64) {
     return {
       texto:
         "Modo de prueba: todavía no puedo leer fotos. Escribime el enunciado y lo copio en la pizarra para trabajarlo juntos.",
@@ -158,6 +133,6 @@ function responderSincrono({ texto, foto }: EntradaTutor, { enunciado, pistasDad
 
 /** Tutor simulado: espera un poco, como si el modelo estuviera pensando, y responde. */
 export const tutorSimulado: Tutor = async (entrada, contexto) => {
-  await pausa(entrada.foto ? 1300 : 900);
+  await pausa(entrada.fotoBase64 ? 1300 : 900);
   return responderSincrono(entrada, contexto);
 };

@@ -2,7 +2,8 @@
 
 Más adelante: revisa el límite de mensajes, limpia la imagen si viene, arma la
 conversación con las instrucciones del tutor, consulta la cadena de proveedores
-y verifica con SymPy antes de responder. Por ahora responde un texto fijo.
+y verifica con SymPy antes de responder. Por ahora responde un texto fijo que ya
+cumple el contrato (``ChatSalida``).
 """
 
 from fastapi import APIRouter
@@ -15,4 +16,4 @@ router = APIRouter(prefix="/api", tags=["chat"])
 @router.post("/chat", response_model=ChatSalida)
 def conversar(entrada: ChatEntrada) -> ChatSalida:
     """Responde al mensaje del estudiante (modo de prueba)."""
-    return ChatSalida(respuesta="Modo de prueba: aquí responderá el tutor.")
+    return ChatSalida(texto="Modo de prueba: aquí responderá el tutor.")
