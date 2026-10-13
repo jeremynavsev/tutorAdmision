@@ -121,3 +121,15 @@ def test_una_foto_invalida_no_llega_al_modelo(modelo):
 def test_sin_proveedores_avisa():
     with pytest.raises(SinProveedores):
         responder(entrada())
+
+
+@pytest.mark.parametrize("pistas_dadas, numero_del_modelo, esperado", [(0, 5, 1), (2, 1, 3), (3, 4, 4), (19, 2, 20), (25, 1, 20)])
+def test_el_numero_de_pista_sale_del_contador_no_del_modelo(modelo, pistas_dadas, numero_del_modelo, esperado):
+    modelo.responde({"texto": "Restá 5 a ambos lados.", "pista": numero_del_modelo, "anotaciones": []})
+    salida = responder(ChatEntrada(mensaje="ayuda", contexto={"enunciado": ECUACION, "pistas_dadas": pistas_dadas}))
+    assert salida.pista == esperado
+
+
+def test_si_no_es_pista_se_queda_sin_numero(modelo):
+    modelo.responde({"texto": "¿Qué operación harías primero?", "pista": None, "anotaciones": []})
+    assert responder(ChatEntrada(mensaje="hola", contexto={"enunciado": ECUACION, "pistas_dadas": 3})).pista is None

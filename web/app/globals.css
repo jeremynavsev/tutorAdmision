@@ -7,7 +7,7 @@
 :root,
 :root[data-theme="light"] {
   color-scheme: light;
-  --fondo: #b0f2c2;
+  --fondo: #b3ccae;
   --neblina: #f4f6f2;
   --papel: #ffffff;
   --helecho: #e1ebe2;
@@ -17,6 +17,9 @@
   --guaria: #7a4e9e;
   --carbon: #1c2420;
   --carbon-suave: #56635b;
+  /* Para texto que va directo sobre --fondo: más oscuros, para cumplir contraste AA. */
+  --suave-sobre-fondo: #444f48;
+  --guaria-sobre-fondo: #613e7e;
   --sobre-cafetal: #f4f6f2;
   --pizarra: #1e3f31;
   --pizarra-borde: #163126;
@@ -40,6 +43,8 @@
     --guaria: #c3a2e0;
     --carbon: #e6ede8;
     --carbon-suave: #9fb0a6;
+    --suave-sobre-fondo: #9fb0a6;
+    --guaria-sobre-fondo: #c3a2e0;
     --sobre-cafetal: #0f1613;
     --pizarra: #193328;
     --pizarra-borde: #10231b;
@@ -63,6 +68,8 @@
   --guaria: #c3a2e0;
   --carbon: #e6ede8;
   --carbon-suave: #9fb0a6;
+  --suave-sobre-fondo: #9fb0a6;
+  --guaria-sobre-fondo: #c3a2e0;
   --sobre-cafetal: #0f1613;
   --pizarra: #193328;
   --pizarra-borde: #10231b;
@@ -846,7 +853,7 @@ button {
   gap: 0.25rem;
   font-family: var(--fuente-texto), system-ui, sans-serif;
   font-weight: 700;
-  color: var(--guaria);
+  color: var(--guaria-sobre-fondo);
 }
 
 .numero-pista {
@@ -871,7 +878,7 @@ button {
 
 .numero-pista path {
   fill: none;
-  stroke: var(--guaria);
+  stroke: var(--guaria-sobre-fondo);
   stroke-width: 1.8;
   stroke-linecap: round;
 }
@@ -914,6 +921,57 @@ button {
   background: linear-gradient(90deg, var(--musgo) 25%, var(--neblina) 50%, var(--musgo) 75%);
   background-size: 400% 100%;
   animation: brillo-carga 1.4s linear infinite;
+}
+
+/* Aviso bajo el mensaje al que el tutor no pudo responder. */
+.sin-respuesta {
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.375rem 0.5rem;
+  margin-top: -0.75rem;
+  font-size: var(--texto-pequeno);
+  color: var(--suave-sobre-fondo);
+}
+
+.sin-respuesta .icono {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.boton-reintentar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 36px;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--cafetal);
+  border-radius: 999px;
+  background: var(--papel);
+  color: var(--cafetal);
+  font-size: var(--texto-pequeno);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--rapido) var(--curva), background-color var(--rapido), color var(--rapido);
+}
+
+.boton-reintentar:hover {
+  background: var(--cafetal);
+  color: var(--sobre-cafetal);
+}
+
+.boton-reintentar:hover .icono {
+  transform: rotate(-45deg);
+}
+
+.boton-reintentar .icono {
+  transition: transform 300ms var(--curva);
+}
+
+.boton-reintentar:active {
+  transform: scale(0.97);
 }
 
 .pensando {
@@ -963,7 +1021,7 @@ button {
 }
 
 .bienvenida-texto {
-  color: var(--carbon-suave);
+  color: var(--suave-sobre-fondo);
   max-width: 32rem;
 }
 
@@ -1444,14 +1502,19 @@ button {
 
 /* ---------- Toasts ---------- */
 
+/* Franja de avisos bajo la barra del chat. No flota: así nunca tapa un mensaje ni el botón Enviar. */
 .toasts {
-  position: fixed;
-  z-index: 50;
-  top: 4.25rem;
-  right: 1rem;
+  flex: none;
   display: grid;
   gap: 0.5rem;
-  width: min(24rem, calc(100vw - 2rem));
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 0.5rem 1rem 0;
+}
+
+.toasts:empty {
+  display: none;
 }
 
 .toast {
@@ -1466,7 +1529,24 @@ button {
   color: var(--carbon);
   box-shadow: var(--sombra);
   font-size: var(--texto-pequeno);
-  animation: entrar-derecha 250ms ease-out;
+  animation: subir 250ms ease-out;
+}
+
+/* Error: colores invertidos, para que se distinga sin sumar otro color a la paleta. */
+.toast-error {
+  background: var(--carbon);
+  color: var(--papel);
+  border-color: var(--carbon);
+}
+
+.toast-error .icono,
+.toast-error .boton-icono {
+  color: var(--papel);
+}
+
+.toast-error .boton-icono:hover {
+  background: color-mix(in srgb, var(--papel) 18%, transparent);
+  color: var(--papel);
 }
 
 .toast p {

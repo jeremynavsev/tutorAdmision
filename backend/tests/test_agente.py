@@ -189,3 +189,19 @@ def test_recopiar_solo_la_ecuacion_tambien_es_el_mismo_problema():
         enunciado_actual=actual,
     )
     assert [type(a) for a in salida.anotaciones] == [AnotacionCirculo]
+
+
+def test_las_instrucciones_definen_cuando_un_mensaje_es_una_pista():
+    sistema = armar_conversacion(ChatEntrada(mensaje="hola"))[0]["content"]
+    assert "## Cuándo un mensaje es una pista" in sistema
+    assert "probá primero con una pregunta abierta" in sistema
+    assert 'El número de la pista es el de "Pistas ya dadas" más 1.' in sistema
+
+
+def test_las_instrucciones_piden_seguir_al_estudiante_sin_adelantarse():
+    sistema = armar_conversacion(ChatEntrada(mensaje="hola"))[0]["content"]
+    assert "Seguí el método y las palabras del estudiante" in sistema
+    assert "Nunca le digás cuál es el paso siguiente si no te lo pidió" in sistema
+    assert "Ejemplo de cómo seguir al estudiante sin adelantarte" in sistema
+    assert "repetir o confirmar un paso que propuso el estudiante" in sistema
+    assert "no instrucciones de qué hacer" in sistema

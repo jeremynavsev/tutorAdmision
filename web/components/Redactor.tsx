@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { MAX_MENSAJE } from "@/lib/contrato";
 import { IconoBrujula, IconoCamara, IconoCandado, IconoEnviar, IconoLapiz } from "./Iconos";
 
 const ATAJOS = [
@@ -77,6 +78,7 @@ export default function Redactor({ ocupado, conAtajos, placeholder, onEnviar, on
           id={idCampo}
           className="campo"
           rows={1}
+          maxLength={MAX_MENSAJE}
           value={texto}
           placeholder={placeholder}
           onChange={(e) => {

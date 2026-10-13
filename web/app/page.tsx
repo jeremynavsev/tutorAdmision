@@ -10,12 +10,16 @@ import Pizarra from "@/components/Pizarra";
 import Redactor from "@/components/Redactor";
 import Toasts, { type Toast } from "@/components/Toasts";
 import { cargarChats, guardarChats, nuevoId, tituloDesde, type Chat, type Mensaje } from "@/lib/chats";
+import { ErrorDeFoto, prepararFoto } from "@/lib/fotos";
 import { guardarBandera, leerBandera } from "@/lib/tema";
-import { MAX_HISTORIAL, type Contexto, type EntradaTutor, type Tutor } from "@/lib/contrato";
+import { MAX_HISTORIAL, type Contexto, type EntradaTutor, type RespuestaTutor, type Tutor } from "@/lib/contrato";
+import { tutorRemoto } from "@/lib/tutorRemoto";
 import { tutorSimulado } from "@/lib/tutorSimulado";
 
-// Para el tutor real, solo cambia esta línea por otra función que cumpla `Tutor`.
-const tutor: Tutor = tutorSimulado;
+// El tutor real habla con el backend. Con NEXT_PUBLIC_TUTOR=simulado se usa el de
+// mentiras, que sirve para mostrar la interfaz sin backend ni cuota de IA.
+const tutor: Tutor = process.env.NEXT_PUBLIC_TUTOR === "simulado" ? tutorSimulado : tutorRemoto;
+const MENSAJE_DE_ERROR = "Algo salió mal. Probá de nuevo en un ratito.";
 
 const CLAVE_AVISO = "maestro-aviso-aceptado";
 const SIN_ANOTACIONES: Chat["anotaciones"] = [];
@@ -38,15 +42,8 @@ function contextoDe(chat: Chat | undefined): Contexto {
   };
 }
 
-/** Lee la foto como base64, sin el prefijo "data:image/...;base64,". */
-function leerBase64(archivo: File): Promise<string> {
-  return new Promise((resolver, rechazar) => {
-    const lector = new FileReader();
-    lector.onload = () => resolver(String(lector.result).split(",")[1] ?? "");
-    lector.onerror = () => rechazar(lector.error);
-    lector.readAsDataURL(archivo);
-  });
-}
+/** Para comparar apuntes: "-5 + 20 = 15" y "-5+20 = 15" son el mismo. */
+const sinEspacios = (texto: string) => texto.replace(/\s+/g, "").toLowerCase();
 
 export default function Inicio() {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -58,9 +55,10 @@ export default function Inicio() {
   const [pensandoEn, setPensandoEn] = useState<string | null>(null);
   const [animar, setAnimar] = useState<Set<string>>(new Set());
   const [fotos, setFotos] = useState<Record<string, string>>({});
-  const [cargandoFotos, setCargandoFotos] = useState<Set<string>>(new Set());
   const [aviso, setAviso] = useState({ abierto: false, obligatorio: false });
   const [toasts, setToasts] = useState<Toast[]>([]);
+  // El último mensaje al que el tutor no pudo responder (para ofrecer "Reintentar").
+  const [sinRespuesta, setSinRespuesta] = useState<{ chatId: string; mensajeId: string; entrada: EntradaTutor } | null>(null);
 
   // Al cargar: historial, menú abierto en pantalla ancha y aviso en la primera visita.
   useEffect(() => {
@@ -85,10 +83,11 @@ export default function Inicio() {
     return () => document.removeEventListener("keydown", alPresionar);
   }, [aviso.abierto]);
 
-  const avisar = useCallback((texto: string) => {
+  const avisar = useCallback((texto: string, tipo: Toast["tipo"] = "ok") => {
     const id = Date.now() + Math.random();
-    setToasts((t) => [...t, { id, texto }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000);
+    setToasts((t) => [...t, { id, texto, tipo }]);
+    // Un error se queda más tiempo: hay que alcanzar a leerlo.
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), tipo === "error" ? 7000 : 4000);
   }, []);
 
   const activo = chats.find((c) => c.id === activoId);
@@ -116,23 +115,44 @@ export default function Inicio() {
       setChats((todos) => [creado, ...todos]);
       setActivoId(id);
     }
-    const chatId = id;
     const ctx = contextoDe(chat);
-    actualizarChat(chatId, (c) => ({ ...c, actualizado: Date.now(), mensajes: [...c.mensajes, mensaje] }));
+    actualizarChat(id, (c) => ({ ...c, actualizado: Date.now(), mensajes: [...c.mensajes, mensaje] }));
+    await pedirRespuesta(id, mensaje.id, entrada, ctx);
+  }
 
+  /** Le pide la respuesta al tutor. Si falla, el mensaje queda marcado para poder reintentar. */
+  async function pedirRespuesta(chatId: string, mensajeId: string, entrada: EntradaTutor, ctx: Contexto) {
+    setSinRespuesta(null);
     setPensandoEn(chatId);
-    const respuesta = await tutor(entrada, ctx);
-    setPensandoEn(null);
+    let respuesta: RespuestaTutor;
+    try {
+      respuesta = await tutor(entrada, ctx);
+    } catch (error) {
+      avisar(error instanceof Error && error.message ? error.message : MENSAJE_DE_ERROR, "error");
+      setSinRespuesta({ chatId, mensajeId, entrada });
+      return;
+    } finally {
+      setPensandoEn(null);
+    }
 
     const idRespuesta = nuevoId();
     setAnimar((a) => new Set(a).add(idRespuesta));
     actualizarChat(chatId, (c) => {
       const base = c.anotaciones.reduce((m, a) => Math.max(m, a.n), 0);
+      // El modelo a veces repite un apunte que ya escribió: no se vuelve a poner en la pizarra.
+      const escritos = new Set(c.anotaciones.flatMap((a) => (a.tipo === "apunte" ? [sinEspacios(a.texto)] : [])));
+      const nuevas = respuesta.anotaciones.filter((a) => {
+        if (a.tipo !== "apunte") return true;
+        const clave = sinEspacios(a.texto);
+        if (escritos.has(clave)) return false;
+        escritos.add(clave);
+        return true;
+      });
       return {
         ...c,
         actualizado: Date.now(),
         mensajes: [...c.mensajes, { id: idRespuesta, autor: "tutor", texto: respuesta.texto, pista: respuesta.pista }],
-        anotaciones: [...c.anotaciones, ...respuesta.anotaciones.map((a, i) => ({ ...a, n: base + i + 1 }))],
+        anotaciones: [...c.anotaciones, ...nuevas.map((a, i) => ({ ...a, n: base + i + 1 }))],
       };
     });
 
@@ -143,35 +163,36 @@ export default function Inicio() {
     }
   }
 
+  /** Vuelve a pedir la respuesta del mensaje que se quedó sin ella, con el mismo contexto de antes. */
+  function reintentar() {
+    if (!sinRespuesta) return;
+    const { chatId, mensajeId, entrada } = sinRespuesta;
+    const chat = chats.find((c) => c.id === chatId);
+    const posicion = chat?.mensajes.findIndex((m) => m.id === mensajeId) ?? -1;
+    if (!chat || posicion === -1) {
+      setSinRespuesta(null);
+      return;
+    }
+    // El contexto es la conversación hasta justo antes de ese mensaje.
+    pedirRespuesta(chatId, mensajeId, entrada, contextoDe({ ...chat, mensajes: chat.mensajes.slice(0, posicion) }));
+  }
+
   function enviarTexto(texto: string) {
     conversar({ id: nuevoId(), autor: "estudiante", texto }, { texto });
   }
 
   async function enviarFoto(archivo: File) {
-    const id = nuevoId();
-    setFotos((f) => ({ ...f, [id]: URL.createObjectURL(archivo) }));
-    setCargandoFotos((s) => new Set(s).add(id));
-    let fotoBase64: string;
+    let foto;
     try {
-      fotoBase64 = await leerBase64(archivo);
-    } catch {
-      setCargandoFotos((s) => {
-        const otro = new Set(s);
-        otro.delete(id);
-        return otro;
-      });
-      avisar("No se pudo leer la foto. Probá con otra.");
+      // Se reduce y se endereza en el navegador: gasta menos datos y no salen los metadatos.
+      foto = await prepararFoto(archivo);
+    } catch (error) {
+      avisar(error instanceof ErrorDeFoto ? error.message : "No se pudo preparar la foto. Probá con otra.", "error");
       return;
     }
-    setTimeout(() => {
-      setCargandoFotos((s) => {
-        const otro = new Set(s);
-        otro.delete(id);
-        return otro;
-      });
-      avisar("Foto enviada.");
-    }, 700);
-    conversar({ id, autor: "estudiante", texto: "", foto: true }, { texto: "", fotoBase64 });
+    const id = nuevoId();
+    setFotos((f) => ({ ...f, [id]: foto.url }));
+    conversar({ id, autor: "estudiante", texto: "", foto: true }, { texto: "", fotoBase64: foto.base64 });
   }
 
   function cerrarLateralEnCelular() {
@@ -196,6 +217,7 @@ export default function Inicio() {
   function eliminarChat(id: string) {
     setChats((todos) => todos.filter((c) => c.id !== id));
     if (id === activoId) setActivoId(null);
+    if (id === sinRespuesta?.chatId) setSinRespuesta(null);
     avisar("Chat eliminado.");
   }
 
@@ -256,6 +278,9 @@ export default function Inicio() {
           </button>
         </header>
 
+        {/* Los avisos van en una franja bajo la barra: empujan la conversación en vez de taparla. */}
+        <Toasts toasts={toasts} onCerrar={(id) => setToasts((t) => t.filter((x) => x.id !== id))} />
+
         <div className={`chat-cuerpo ${vacio ? "chat-vacio" : ""}`}>
           {vacio ? (
             <Bienvenida />
@@ -265,7 +290,8 @@ export default function Inicio() {
               pensando={pensando}
               animar={animar}
               fotos={fotos}
-              cargandoFotos={cargandoFotos}
+              sinRespuestaId={sinRespuesta?.chatId === activoId ? sinRespuesta.mensajeId : null}
+              onReintentar={reintentar}
             />
           )}
           <Redactor
@@ -287,7 +313,6 @@ export default function Inicio() {
       />
 
       <AvisoEntrada abierto={aviso.abierto} obligatorio={aviso.obligatorio} onAceptar={aceptarAviso} />
-      <Toasts toasts={toasts} onCerrar={(id) => setToasts((t) => t.filter((x) => x.id !== id))} />
     </div>
   );
 }
