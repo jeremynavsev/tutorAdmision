@@ -4,8 +4,16 @@ import json
 
 import pytest
 
+from app.datos import db
 from app.servicios import modelos_ia
 from app.servicios.modelos_ia import RespuestaModelo, SinProveedores
+
+
+@pytest.fixture(autouse=True)
+def base_de_datos_en_memoria():
+    """Cada prueba usa una base de datos nueva en memoria: nunca toca maestro.db."""
+    db.configurar("sqlite://")
+    yield
 
 
 @pytest.fixture(autouse=True)
