@@ -29,9 +29,10 @@ ni la letra de la opción, ni el último paso resuelto. Tu trabajo es que el est
 llegue solo. Guiá con preguntas cortas que le hagan pensar el siguiente paso.
 
 ## Cómo hablás
-- Español de Costa Rica con voseo: "pensá", "fijate", "decime", "probá".
-- Prohibido usar "mae". Tampoco usés expresiones de otros países ("che", "boludo",
-  "tío", "güey").
+- Español de Costa Rica con voseo, siempre: "pensá", "fijate", "decime", "probá",
+  "¿qué obtenés?", "¿qué hacés?". Nunca tuteés ("obtienes", "haces", "piensa").
+- Prohibido usar "mae" y "pura vida". Tampoco usés expresiones de otros países
+  ("che", "boludo", "tío", "güey").
 - Cercano y paciente, como un compañero mayor que explica bien.
 - Respuestas cortas: de 1 a 3 oraciones, y casi siempre terminá con una pregunta.
 - Escribí la matemática en texto simple (3x + 5 = 20, 6000 ÷ 40 000, x²). Sin LaTeX.
@@ -62,6 +63,14 @@ preguntó o se equivocó, no a un guion.
    ejercicio, o es de otra materia (química, inglés, tareas del colegio), decile con
    amabilidad que solo ayudás con la preparación para la prueba de admisión e
    invitalo a mandar un ejercicio de ese tipo.
+
+## Cuando llega una foto
+- Si trae un ejercicio, copiá su enunciado en la pizarra (con las opciones, si tiene)
+  y seguí como con cualquier problema nuevo.
+- Si está borrosa, cortada o no trae un ejercicio, pedile que la tome de nuevo, con
+  buena luz y el ejercicio completo. No adivinés lo que no se lee.
+- Si trae el procedimiento del estudiante, comentá su procedimiento: qué va bien y
+  qué paso revisar, sin dar la respuesta.
 
 ## Chat y pizarra: cada uno hace lo suyo
 - En el chat hablás: preguntas, explicaciones con palabras, si va bien o qué revisar
@@ -176,8 +185,14 @@ def _extraer_json(texto: str) -> dict:
 
 
 def _mismo_texto(a: str, b: str) -> bool:
-    """Compara dos enunciados sin importar espacios ni mayúsculas."""
-    return " ".join(a.split()).casefold() == " ".join(b.split()).casefold()
+    """Indica si dos enunciados son el mismo problema.
+
+    No importan los espacios ni las mayúsculas, y también cuenta cuando uno es
+    parte del otro: el modelo a veces recopia solo la ecuación ("3x - 5 = 10")
+    de un enunciado más largo ("¿cuánto vale x? 3x-5=10").
+    """
+    uno, otro = ("".join(t.split()).casefold() for t in (a, b))
+    return bool(uno) and bool(otro) and (uno in otro or otro in uno)
 
 
 def _numero_de_pista(valor) -> int | None:

@@ -7,7 +7,11 @@ from app.main import app
 cliente = TestClient(app)
 
 
-def test_responde_con_el_contrato():
+RESPUESTA = {"texto": "¿Qué te piden?", "pista": None, "anotaciones": []}
+
+
+def test_responde_con_el_contrato(modelo):
+    modelo.responde({"texto": "Restá 5 a ambos lados.", "pista": 2, "anotaciones": [{"tipo": "apunte", "texto": "3x = 20 − 5"}]})
     respuesta = cliente.post(
         "/api/chat",
         json={
@@ -17,24 +21,61 @@ def test_responde_con_el_contrato():
         },
     )
     assert respuesta.status_code == 200
-    cuerpo = respuesta.json()
-    assert set(cuerpo) == {"texto", "pista", "anotaciones", "proveedor"}
-    assert isinstance(cuerpo["anotaciones"], list)
+    assert respuesta.json() == {
+        "texto": "Restá 5 a ambos lados.",
+        "pista": 2,
+        "anotaciones": [{"tipo": "apunte", "texto": "3x = 20 − 5"}],
+        "proveedor": "falso",
+    }
 
 
-def test_basta_con_el_mensaje():
+def test_basta_con_el_mensaje(modelo):
+    modelo.responde(RESPUESTA)
     assert cliente.post("/api/chat", json={"mensaje": "hola"}).status_code == 200
 
 
-def test_basta_con_una_foto():
-    assert cliente.post("/api/chat", json={"imagen_base64": "aGVsbG8="}).status_code == 200
+def test_basta_con_una_foto(modelo):
+    import base64
+    import io
+
+    from PIL import Image
+
+    modelo.responde(RESPUESTA)
+    salida = io.BytesIO()
+    Image.new("RGB", (40, 30), "white").save(salida, "PNG")
+    foto = base64.b64encode(salida.getvalue()).decode()
+    assert cliente.post("/api/chat", json={"imagen_base64": foto}).status_code == 200
+
+
+def test_una_foto_que_no_es_imagen_devuelve_400_con_mensaje(modelo):
+    respuesta = cliente.post("/api/chat", json={"imagen_base64": "aGVsbG8="})
+    assert respuesta.status_code == 400
+    assert "no es una imagen válida" in respuesta.json()["detail"]
+    assert modelo.llamadas == []
+
+
+def test_sin_proveedores_devuelve_503_con_mensaje_amable():
+    respuesta = cliente.post("/api/chat", json={"mensaje": "hola"})
+    assert respuesta.status_code == 503
+    assert "no está disponible" in respuesta.json()["detail"]
+
+
+def test_si_el_modelo_no_da_json_devuelve_503(modelo):
+    modelo.responde("nada", "tampoco")
+    assert cliente.post("/api/chat", json={"mensaje": "hola"}).status_code == 503
+
+
+def test_los_errores_no_muestran_detalles_internos():
+    cuerpo = cliente.post("/api/chat", json={"mensaje": "hola"}).text
+    assert "prueba:" not in cuerpo and "HTTP" not in cuerpo and "Traceback" not in cuerpo
 
 
 def test_rechaza_mensaje_vacio_sin_foto():
     assert cliente.post("/api/chat", json={"mensaje": "   "}).status_code == 422
 
 
-def test_las_pistas_no_tienen_tope_de_tres():
+def test_las_pistas_no_tienen_tope_de_tres(modelo):
+    modelo.responde(RESPUESTA)
     entrada = {"mensaje": "hola", "historial": [{"autor": "tutor", "texto": "x", "pista": 7}]}
     assert cliente.post("/api/chat", json=entrada).status_code == 200
 

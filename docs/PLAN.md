@@ -39,16 +39,20 @@ otros archivos.
 
 ## Fase 1 — Backend con IA real (1–2 semanas)
 
-- [ ] `servicios/modelos_ia.py`: cadena Gemini → Groq → Mistral con el cliente `openai`,
+- [x] `servicios/modelos_ia.py`: cadena Gemini → Groq → Mistral con el cliente `openai`,
       con tiempo máximo y paso automático al siguiente proveedor si uno falla.
-- [ ] `servicios/agente.py`: instrucciones del sistema (voseo, guiar con preguntas, tres
-      niveles de pista, nunca dar la respuesta) y respuesta en **JSON estructurado** con el
+- [x] `servicios/agente.py`: instrucciones del sistema (voseo, guiar con preguntas, pistas
+      que se adaptan al estudiante, nunca dar la respuesta) y respuesta en **JSON estructurado** con el
       texto y las anotaciones de la pizarra.
-- [ ] `servicios/verificador.py`: con SymPy, revisar que el tutor no filtre el resultado
+- [x] `servicios/verificador.py`: con SymPy, revisar que el tutor no filtre el resultado
       final; si lo filtra, regenerar la respuesta.
-- [ ] `servicios/imagenes.py`: quitar metadatos y reducir la foto antes de pasarla al
+- [x] `servicios/imagenes.py`: quitar metadatos y reducir la foto antes de pasarla al
       modelo con visión.
-- [ ] Pruebas con pytest para cada servicio, con los proveedores simulados.
+- [x] Pruebas con pytest para cada servicio, con los proveedores simulados.
+- [x] `servicios/tutor.py` une todo y `POST /api/chat` ya responde con IA real.
+
+Pendiente de esta fase: Gemini tarda de 6 a 9 segundos por respuesta; revisar si se puede
+bajar ajustando el razonamiento del modelo.
 
 ## Fase 2 — Conectar el frontend (3–5 días)
 

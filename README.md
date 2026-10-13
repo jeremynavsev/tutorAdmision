@@ -14,11 +14,12 @@ Un mae que te acompaña a estudiar.
 
 ## Estado
 
-**Prototipo.** El frontend ya tiene la interfaz completa de agente (menú de chats,
-conversación y pizarra), pero responde con un **tutor simulado** (`web/lib/tutorSimulado.ts`).
-En el backend, las rutas devuelven datos fijos de ejemplo y los servicios (agente,
-proveedores de IA, verificación con SymPy, imágenes, límites y base de datos) solo tienen
-docstrings y firmas. El plan de desarrollo está en [`docs/PLAN.md`](docs/PLAN.md).
+**En desarrollo.** El backend ya responde con IA real: `POST /api/chat` limpia la foto si
+viene, consulta la cadena de proveedores (Gemini → Groq → Mistral) con las instrucciones
+del tutor y revisa que la respuesta no regale el resultado. El frontend tiene la interfaz
+completa de agente (menú de chats, conversación y pizarra), pero todavía usa un **tutor
+simulado** (`web/lib/tutorSimulado.ts`); conectarlo al backend es la fase 2. Faltan los
+límites de uso, la base de datos y el banco de ejercicios. El plan de desarrollo está en [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Estructura
 
@@ -30,7 +31,8 @@ prototipo/
 │   │   ├── config.py        Lee variables de entorno y el .env (sin dependencias extra)
 │   │   ├── esquemas.py      Modelos Pydantic de entrada y salida
 │   │   ├── rutas/           salud, ejercicios, sesiones, chat
-│   │   ├── servicios/       agente, modelos_ia, verificador, imagenes, limites
+│   │   ├── servicios/       tutor (une todo), agente, modelos_ia, verificador,
+│   │   │                    imagenes, limites
 │   │   └── datos/db.py      SQLAlchemy: SQLite local, PostgreSQL (Neon) en producción
 │   ├── ejercicios/banco.json  Banco de ejercicios de ejemplo
 │   ├── tests/               Pruebas con pytest
@@ -64,11 +66,13 @@ prototipo/
 | GET    | `/api/salud`      | `{"ok": true}`                                        |
 | GET    | `/api/ejercicios` | Dos ejercicios de ejemplo (sin solución)              |
 | POST   | `/api/sesiones`   | `{"ok": true}`                                        |
-| POST   | `/api/chat`       | Texto fijo de prueba, ya con la forma del contrato    |
+| POST   | `/api/chat`       | La respuesta del tutor (IA real)                      |
 
 `POST /api/chat` recibe `mensaje`, `imagen_base64` (opcional), `historial` y `contexto`
 (`enunciado` en la pizarra y `pistas_dadas`), y devuelve `texto`, `pista` (1–3 o `null`),
-`anotaciones` para la pizarra y `proveedor`. El contrato completo está en
+`anotaciones` para la pizarra y `proveedor`. Si la foto no sirve responde 400, y si ningún
+proveedor contesta, 503; en ambos casos `detail` trae un mensaje para mostrarle al
+estudiante. El contrato completo está en
 `backend/app/esquemas.py` y su espejo para el frontend en `web/lib/contrato.ts`.
 
 ## Cómo correrlo en Fedora

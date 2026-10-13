@@ -27,9 +27,21 @@ def test_sin_problema_lo_dice():
     assert "Problema en la pizarra: todavía no hay" in sistema
 
 
-def test_las_instrucciones_prohiben_mae():
+def test_las_instrucciones_prohiben_mae_y_pura_vida():
     sistema = armar_conversacion(ChatEntrada(mensaje="hola"))[0]["content"]
-    assert 'Prohibido usar "mae"' in sistema
+    assert 'Prohibido usar "mae" y "pura vida"' in sistema
+
+
+def test_las_instrucciones_piden_voseo_sin_tuteo():
+    sistema = armar_conversacion(ChatEntrada(mensaje="hola"))[0]["content"]
+    assert "Nunca tuteés" in sistema
+
+
+def test_las_instrucciones_dicen_que_hacer_con_las_fotos():
+    sistema = armar_conversacion(ChatEntrada(mensaje="hola"))[0]["content"]
+    assert "## Cuando llega una foto" in sistema
+    assert "pedile que la tome de nuevo" in sistema
+    assert "comentá su procedimiento" in sistema
 
 
 def test_traduce_el_historial_a_roles_del_modelo():
@@ -167,3 +179,13 @@ def test_un_problema_nuevo_si_se_copia():
         enunciado_actual=ENUNCIADO,
     )
     assert [type(a) for a in salida.anotaciones] == [AnotacionEnunciado, AnotacionCirculo]
+
+
+def test_recopiar_solo_la_ecuacion_tambien_es_el_mismo_problema():
+    actual = "cual es el valor de x? 3x-5+20=50"
+    salida = interpretar_respuesta(
+        respuesta(anotaciones=[{"tipo": "enunciado", "texto": "3x - 5 + 20 = 50"}, {"tipo": "circulo", "dato": "50"}]),
+        "groq",
+        enunciado_actual=actual,
+    )
+    assert [type(a) for a in salida.anotaciones] == [AnotacionCirculo]
