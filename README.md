@@ -34,7 +34,8 @@ prototipo/
 │   │   └── datos/db.py      SQLAlchemy: SQLite local, PostgreSQL (Neon) en producción
 │   ├── ejercicios/banco.json  Banco de ejercicios de ejemplo
 │   ├── tests/               Pruebas con pytest
-│   ├── requirements.txt
+│   ├── requirements.txt     Dependencias de producción (versiones fijas)
+│   ├── requirements-dev.txt Más las de pruebas (pytest, httpx)
 │   ├── .env.example
 │   └── Containerfile        Imagen para Podman
 ├── web/                     Next.js 15 (App Router, TypeScript), exportado como sitio estático
@@ -103,7 +104,7 @@ sudo dnf install python3 nodejs npm
 cd /home/jeremy/semestreII2026/Examen/prototipo/backend
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 cp .env.example .env        # completá las llaves cuando las tengás
 uvicorn app.main:app --reload --port 8100
 ```

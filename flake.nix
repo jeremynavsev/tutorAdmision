@@ -50,7 +50,7 @@
             if [ ! -x backend/.venv/bin/uvicorn ]; then
               echo "→ Creando backend/.venv e instalando dependencias (solo la primera vez)..."
               PIP_DISABLE_PIP_VERSION_CHECK=1 python3.12 -m venv backend/.venv \
-                && PIP_DISABLE_PIP_VERSION_CHECK=1 backend/.venv/bin/pip install -q -r backend/requirements.txt \
+                && PIP_DISABLE_PIP_VERSION_CHECK=1 backend/.venv/bin/pip install -q -r backend/requirements-dev.txt \
                 || echo "  Aviso: falló la instalación del backend."
             fi
             if corriendo backend; then
