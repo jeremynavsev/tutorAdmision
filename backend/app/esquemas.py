@@ -1,8 +1,8 @@
 """Modelos Pydantic de entrada y salida de la API."""
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class RespuestaOk(BaseModel):
@@ -42,31 +42,88 @@ class EjercicioPublico(BaseModel):
 
 
 class SesionEntrada(BaseModel):
-    """Datos para abrir una sesión de práctica. No incluye datos personales."""
+    """Datos para abrir una sesión anónima. No incluye datos personales."""
 
     acepto_aviso: bool
-    ejercicio_id: str | None = None
 
 
-class MensajeChat(BaseModel):
-    """Un mensaje de la conversación."""
+# ---------- Contrato del tutor (POST /api/chat) ----------
+#
+# Es el mismo contrato que usa el tutor simulado del frontend
+# (web/lib/contrato.ts). Si cambia aquí, cambia allá.
 
-    rol: Literal["estudiante", "tutor"]
-    texto: str
+NumeroPista = Literal[1, 2, 3]
+
+MAX_MENSAJE = 2000
+MAX_HISTORIAL = 40
+# Una foto ya reducida en el navegador pesa bastante menos; esto es un tope de seguridad.
+MAX_IMAGEN_BASE64 = 7_000_000
+
+
+class MensajeHistorial(BaseModel):
+    """Un mensaje anterior de la conversación, para que el tutor tenga contexto."""
+
+    autor: Literal["estudiante", "tutor"]
+    texto: str = Field(max_length=4000)
+    pista: NumeroPista | None = None
+
+
+class Contexto(BaseModel):
+    """Lo que ya pasó en el chat y el tutor necesita saber."""
+
+    enunciado: str | None = Field(default=None, max_length=MAX_MENSAJE)
+    """Problema que ya está copiado en la pizarra, si hay."""
+
+    pistas_dadas: int = Field(default=0, ge=0)
 
 
 class ChatEntrada(BaseModel):
-    """Mensaje del estudiante hacia el tutor."""
+    """Mensaje del estudiante hacia el tutor: texto, foto o ambos."""
 
     sesion_id: str | None = None
-    ejercicio_id: str | None = None
-    mensaje: str = Field(min_length=1, max_length=2000)
-    imagen_base64: str | None = None
+    mensaje: str = Field(default="", max_length=MAX_MENSAJE)
+    imagen_base64: str | None = Field(default=None, max_length=MAX_IMAGEN_BASE64)
+    historial: list[MensajeHistorial] = Field(default_factory=list, max_length=MAX_HISTORIAL)
+    contexto: Contexto = Field(default_factory=Contexto)
+
+    @model_validator(mode="after")
+    def _texto_o_foto(self) -> "ChatEntrada":
+        if not self.mensaje.strip() and not self.imagen_base64:
+            raise ValueError("El mensaje necesita texto o una foto.")
+        return self
+
+
+class AnotacionEnunciado(BaseModel):
+    """Copia el problema en la pizarra."""
+
+    tipo: Literal["enunciado"] = "enunciado"
+    texto: str = Field(min_length=1, max_length=MAX_MENSAJE)
+
+
+class AnotacionCirculo(BaseModel):
+    """Encierra en un círculo un dato que aparece tal cual en el enunciado."""
+
+    tipo: Literal["circulo"] = "circulo"
+    dato: str = Field(min_length=1, max_length=60)
+
+
+class AnotacionApunte(BaseModel):
+    """Escribe una línea con tiza en la zona de apuntes."""
+
+    tipo: Literal["apunte"] = "apunte"
+    texto: str = Field(min_length=1, max_length=120)
+
+
+Anotacion = Annotated[
+    AnotacionEnunciado | AnotacionCirculo | AnotacionApunte,
+    Field(discriminator="tipo"),
+]
 
 
 class ChatSalida(BaseModel):
-    """Respuesta del tutor."""
+    """Respuesta del tutor: el texto, si es pista y qué dibujar en la pizarra."""
 
-    respuesta: str
-    es_pista: bool = False
+    texto: str
+    pista: NumeroPista | None = None
+    anotaciones: list[Anotacion] = Field(default_factory=list)
     proveedor: str = "prueba"
