@@ -70,6 +70,8 @@ otros archivos.
 
 - [x] Reemplazar `tutorSimulado` por una función que llame a `POST /api/chat`:
       `web/lib/tutorRemoto.ts`. El simulado queda con `NEXT_PUBLIC_TUTOR=simulado`.
+- [x] Reducir la foto en el navegador antes de subirla (`web/lib/fotos.ts`): menos datos
+      móviles, nunca pasa el límite del backend y los metadatos no salen del teléfono.
 - [ ] Mensajes de error con toasts: sin conexión, proveedor caído o límite alcanzado.
 - [ ] Opcional: mostrar la respuesta mientras el modelo la genera (streaming).
 
