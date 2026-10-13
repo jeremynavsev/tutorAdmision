@@ -15,7 +15,7 @@ modelo no dio un JSON utilizable ni al segundo intento).
 
 import logging
 
-from app.esquemas import ChatEntrada, ChatSalida, Ejercicio, Solucion
+from app.esquemas import MAX_PISTAS, ChatEntrada, ChatSalida, Ejercicio, Solucion
 from app.servicios import modelos_ia
 from app.servicios.agente import RespuestaInvalida, armar_conversacion, interpretar_respuesta
 from app.servicios.imagenes import limpiar_y_reducir
@@ -76,5 +76,9 @@ def responder(
         if filtra_la_respuesta(salida, entrada, solucion):
             registro.warning("La segunda respuesta de %s también lo revelaba; se envía la respuesta segura.", salida.proveedor)
             salida = ChatSalida(texto=RESPUESTA_SEGURA, proveedor=salida.proveedor)
+
+    # El número de pista no se le confía al modelo: es el contador de la conversación más uno.
+    if salida.pista is not None:
+        salida = salida.model_copy(update={"pista": min(entrada.contexto.pistas_dadas + 1, MAX_PISTAS)})
 
     return salida

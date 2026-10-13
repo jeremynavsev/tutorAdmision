@@ -189,3 +189,10 @@ def test_recopiar_solo_la_ecuacion_tambien_es_el_mismo_problema():
         enunciado_actual=actual,
     )
     assert [type(a) for a in salida.anotaciones] == [AnotacionCirculo]
+
+
+def test_las_instrucciones_definen_cuando_un_mensaje_es_una_pista():
+    sistema = armar_conversacion(ChatEntrada(mensaje="hola"))[0]["content"]
+    assert "## Cuándo un mensaje es una pista" in sistema
+    assert "probá primero con una pregunta abierta" in sistema
+    assert 'El número de la pista es el de "Pistas ya dadas" más 1.' in sistema
