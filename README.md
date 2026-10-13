@@ -66,7 +66,7 @@ prototipo/
 | ------ | ----------------- | ----------------------------------------------------- |
 | GET    | `/api/salud`      | `{"ok": true}`                                        |
 | GET    | `/api/ejercicios` | Dos ejercicios de ejemplo (sin solución)              |
-| POST   | `/api/sesiones`   | `{"ok": true}`                                        |
+| POST   | `/api/sesiones`   | Crea una sesión anónima y devuelve su `sesion_id`     |
 | POST   | `/api/chat`       | La respuesta del tutor (IA real)                      |
 
 `POST /api/chat` recibe `mensaje`, `imagen_base64` (opcional), `historial` y `contexto`

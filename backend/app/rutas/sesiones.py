@@ -1,17 +1,31 @@
 """Rutas de sesiones de práctica.
 
-Más adelante creará una sesión anónima (sin datos personales) y devolverá su id
-para aplicar los límites de mensajes.
+Una sesión es un identificador al azar que se crea cuando el estudiante acepta
+el aviso de entrada. No guarda ningún dato personal: solo sirve para contar
+cuántos mensajes manda por día y aplicar el límite.
 """
 
-from fastapi import APIRouter
+import uuid
 
-from app.esquemas import RespuestaOk, SesionEntrada
+from fastapi import APIRouter, HTTPException
+
+from app.datos.db import Sesion, sesion_bd
+from app.esquemas import SesionEntrada, SesionSalida
 
 router = APIRouter(prefix="/api", tags=["sesiones"])
 
 
-@router.post("/sesiones", response_model=RespuestaOk)
-def crear_sesion(datos: SesionEntrada) -> RespuestaOk:
-    """Abre una sesión de práctica (por ahora solo confirma)."""
-    return RespuestaOk()
+@router.post(
+    "/sesiones",
+    response_model=SesionSalida,
+    status_code=201,
+    responses={400: {"description": "No se aceptó el aviso de entrada."}},
+)
+def crear_sesion(datos: SesionEntrada) -> SesionSalida:
+    """Crea una sesión anónima. Solo si el estudiante aceptó el aviso de entrada."""
+    if not datos.acepto_aviso:
+        raise HTTPException(status_code=400, detail="Para practicar hay que aceptar el aviso de entrada.")
+    sesion_id = str(uuid.uuid4())
+    with sesion_bd() as bd:
+        bd.add(Sesion(id=sesion_id))
+    return SesionSalida(sesion_id=sesion_id)

@@ -47,6 +47,12 @@ class SesionEntrada(BaseModel):
     acepto_aviso: bool
 
 
+class SesionSalida(BaseModel):
+    """La sesión recién creada. El id es al azar y no identifica a la persona."""
+
+    sesion_id: str
+
+
 # ---------- Contrato del tutor (POST /api/chat) ----------
 #
 # Es el mismo contrato que usa el tutor simulado del frontend
