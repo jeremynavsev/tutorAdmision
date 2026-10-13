@@ -6,13 +6,13 @@
  * módulo es el que cambia por llamadas a la API.
  */
 
-import type { Anotacion } from "./contrato";
+import type { Anotacion, NumeroPista } from "./contrato";
 
 export type Mensaje = {
   id: string;
   autor: "tutor" | "estudiante";
   texto: string;
-  pista?: 1 | 2 | 3;
+  pista?: NumeroPista;
   foto?: boolean;
 };
 

@@ -97,19 +97,19 @@ function responderSincrono({ texto, fotoBase64 }: EntradaTutor, { enunciado, pis
     }
     if (pideRespuesta) {
       return {
-        texto: "La respuesta no te la voy a dar, mae, pero sí te acompaño. Primero mandame el problema: escribilo o tomale una foto.",
+        texto: "La respuesta no te la voy a dar, pero sí te acompaño. Primero mandame el problema: escribilo o tomale una foto.",
         anotaciones: [],
       };
     }
     return {
       texto:
-        "¡Diay, mae! Mandame el problema que querés practicar: escribilo completo, con las opciones si las tiene, y lo copio en la pizarra.",
+        "¡Hola! Mandame el problema que querés practicar: escribilo completo, con las opciones si las tiene, y lo copio en la pizarra.",
       anotaciones: [],
     };
   }
 
   if (pideRespuesta) {
-    return siguientePista(pistasDadas, "Eso no te lo voy a dar, mae: si te lo digo, no aprendés el truco. Pero te ayudo: ");
+    return siguientePista(pistasDadas, "Eso no te lo voy a dar: si te lo digo, no aprendés el truco. Pero te ayudo: ");
   }
 
   if (/pista|ayuda|no se|no entiendo|por donde|empiezo|empezar|perdid/.test(t)) {

@@ -52,7 +52,9 @@ class SesionEntrada(BaseModel):
 # Es el mismo contrato que usa el tutor simulado del frontend
 # (web/lib/contrato.ts). Si cambia aquí, cambia allá.
 
-NumeroPista = Literal[1, 2, 3]
+# Las pistas no tienen un número fijo: se adaptan al estudiante. El tope es solo de seguridad.
+MAX_PISTAS = 20
+NumeroPista = Annotated[int, Field(ge=1, le=MAX_PISTAS)]
 
 MAX_MENSAJE = 2000
 MAX_HISTORIAL = 40

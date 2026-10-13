@@ -34,9 +34,15 @@ def test_rechaza_mensaje_vacio_sin_foto():
     assert cliente.post("/api/chat", json={"mensaje": "   "}).status_code == 422
 
 
-def test_rechaza_numero_de_pista_invalido():
-    entrada = {"mensaje": "hola", "historial": [{"autor": "tutor", "texto": "x", "pista": 4}]}
-    assert cliente.post("/api/chat", json=entrada).status_code == 422
+def test_las_pistas_no_tienen_tope_de_tres():
+    entrada = {"mensaje": "hola", "historial": [{"autor": "tutor", "texto": "x", "pista": 7}]}
+    assert cliente.post("/api/chat", json=entrada).status_code == 200
+
+
+def test_rechaza_numero_de_pista_fuera_de_rango():
+    for pista in (0, 21):
+        entrada = {"mensaje": "hola", "historial": [{"autor": "tutor", "texto": "x", "pista": pista}]}
+        assert cliente.post("/api/chat", json=entrada).status_code == 422
 
 
 def test_rechaza_historial_demasiado_largo():

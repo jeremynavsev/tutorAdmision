@@ -209,7 +209,7 @@ export default function Inicio() {
     setAviso({ abierto: false, obligatorio: false });
     if (primeraVez) {
       guardarBandera(CLAVE_AVISO);
-      avisar("¡Listo, mae! Mandame el problema cuando querás.");
+      avisar("¡Listo! Mandame el problema cuando querás.");
     }
   }
 
