@@ -72,7 +72,8 @@ otros archivos.
       `web/lib/tutorRemoto.ts`. El simulado queda con `NEXT_PUBLIC_TUTOR=simulado`.
 - [x] Reducir la foto en el navegador antes de subirla (`web/lib/fotos.ts`): menos datos
       móviles, nunca pasa el límite del backend y los metadatos no salen del teléfono.
-- [ ] Mensajes de error con toasts: sin conexión, proveedor caído o límite alcanzado.
+- [x] Avisos de error: se distinguen de las confirmaciones, no tapan la conversación y,
+      si el tutor no responde, el mensaje ofrece "Reintentar" sin volver a escribirlo.
 - [ ] Opcional: mostrar la respuesta mientras el modelo la genera (streaming).
 
 ## Fase 3 — Seguridad y límites (1 semana)

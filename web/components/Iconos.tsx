@@ -119,3 +119,17 @@ export const IconoAviso = (p: Props) => (
     <path d="M12 11v5M12 8h.01" />
   </Base>
 );
+
+export const IconoAlerta = (p: Props) => (
+  <Base {...p}>
+    <path d="M12 4l9 15.5H3z" />
+    <path d="M12 10v4M12 17h.01" />
+  </Base>
+);
+
+export const IconoReintentar = (p: Props) => (
+  <Base {...p}>
+    <path d="M20 12a8 8 0 1 1-2.6-5.9" />
+    <path d="M20 4v5h-5" />
+  </Base>
+);

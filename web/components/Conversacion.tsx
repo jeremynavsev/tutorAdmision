@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Mensaje } from "@/lib/chats";
 import { prefiereMenosMovimiento } from "@/lib/tema";
 import { CIRCULITO_PISTA } from "@/lib/trazos";
+import { IconoAlerta, IconoReintentar } from "./Iconos";
 
 type Props = {
   mensajes: Mensaje[];
@@ -12,10 +13,13 @@ type Props = {
   animar: Set<string>;
   /** Fotos de esta sesión (no se guardan en el historial). */
   fotos: Record<string, string>;
+  /** Id del mensaje del estudiante al que el tutor no pudo responder, si hay. */
+  sinRespuestaId: string | null;
+  onReintentar: () => void;
 };
 
 /** Conversación: el tutor sin burbuja con la etiqueta "MAEstro"; el estudiante en burbuja a la derecha. */
-export default function Conversacion({ mensajes, pensando, animar, fotos }: Props) {
+export default function Conversacion({ mensajes, pensando, animar, fotos, sinRespuestaId, onReintentar }: Props) {
   const final = useRef<HTMLLIElement>(null);
 
   function bajar(suave: boolean) {
@@ -24,7 +28,7 @@ export default function Conversacion({ mensajes, pensando, animar, fotos }: Prop
 
   useEffect(() => {
     bajar(true);
-  }, [mensajes.length, pensando]);
+  }, [mensajes.length, pensando, sinRespuestaId]);
 
   return (
     <ol className="conversacion" aria-live="polite" aria-label="Conversación con MAEstro">
@@ -49,6 +53,16 @@ export default function Conversacion({ mensajes, pensando, animar, fotos }: Prop
             {m.texto && <p>{m.texto}</p>}
           </li>
         ),
+      )}
+      {sinRespuestaId && !pensando && mensajes.some((m) => m.id === sinRespuestaId) && (
+        <li className="mensaje sin-respuesta">
+          <IconoAlerta />
+          <span>No llegó la respuesta.</span>
+          <button type="button" className="boton-reintentar" onClick={onReintentar}>
+            <IconoReintentar />
+            Reintentar
+          </button>
+        </li>
       )}
       {pensando && (
         <li className="mensaje mensaje-tutor">

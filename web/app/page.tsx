@@ -57,6 +57,8 @@ export default function Inicio() {
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [aviso, setAviso] = useState({ abierto: false, obligatorio: false });
   const [toasts, setToasts] = useState<Toast[]>([]);
+  // El último mensaje al que el tutor no pudo responder (para ofrecer "Reintentar").
+  const [sinRespuesta, setSinRespuesta] = useState<{ chatId: string; mensajeId: string; entrada: EntradaTutor } | null>(null);
 
   // Al cargar: historial, menú abierto en pantalla ancha y aviso en la primera visita.
   useEffect(() => {
@@ -81,10 +83,11 @@ export default function Inicio() {
     return () => document.removeEventListener("keydown", alPresionar);
   }, [aviso.abierto]);
 
-  const avisar = useCallback((texto: string) => {
+  const avisar = useCallback((texto: string, tipo: Toast["tipo"] = "ok") => {
     const id = Date.now() + Math.random();
-    setToasts((t) => [...t, { id, texto }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4000);
+    setToasts((t) => [...t, { id, texto, tipo }]);
+    // Un error se queda más tiempo: hay que alcanzar a leerlo.
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), tipo === "error" ? 7000 : 4000);
   }, []);
 
   const activo = chats.find((c) => c.id === activoId);
@@ -112,17 +115,21 @@ export default function Inicio() {
       setChats((todos) => [creado, ...todos]);
       setActivoId(id);
     }
-    const chatId = id;
     const ctx = contextoDe(chat);
-    actualizarChat(chatId, (c) => ({ ...c, actualizado: Date.now(), mensajes: [...c.mensajes, mensaje] }));
+    actualizarChat(id, (c) => ({ ...c, actualizado: Date.now(), mensajes: [...c.mensajes, mensaje] }));
+    await pedirRespuesta(id, mensaje.id, entrada, ctx);
+  }
 
+  /** Le pide la respuesta al tutor. Si falla, el mensaje queda marcado para poder reintentar. */
+  async function pedirRespuesta(chatId: string, mensajeId: string, entrada: EntradaTutor, ctx: Contexto) {
+    setSinRespuesta(null);
     setPensandoEn(chatId);
     let respuesta: RespuestaTutor;
     try {
       respuesta = await tutor(entrada, ctx);
     } catch (error) {
-      // El mensaje del estudiante se queda en el chat; solo se avisa que no hubo respuesta.
-      avisar(error instanceof Error && error.message ? error.message : MENSAJE_DE_ERROR);
+      avisar(error instanceof Error && error.message ? error.message : MENSAJE_DE_ERROR, "error");
+      setSinRespuesta({ chatId, mensajeId, entrada });
       return;
     } finally {
       setPensandoEn(null);
@@ -156,6 +163,20 @@ export default function Inicio() {
     }
   }
 
+  /** Vuelve a pedir la respuesta del mensaje que se quedó sin ella, con el mismo contexto de antes. */
+  function reintentar() {
+    if (!sinRespuesta) return;
+    const { chatId, mensajeId, entrada } = sinRespuesta;
+    const chat = chats.find((c) => c.id === chatId);
+    const posicion = chat?.mensajes.findIndex((m) => m.id === mensajeId) ?? -1;
+    if (!chat || posicion === -1) {
+      setSinRespuesta(null);
+      return;
+    }
+    // El contexto es la conversación hasta justo antes de ese mensaje.
+    pedirRespuesta(chatId, mensajeId, entrada, contextoDe({ ...chat, mensajes: chat.mensajes.slice(0, posicion) }));
+  }
+
   function enviarTexto(texto: string) {
     conversar({ id: nuevoId(), autor: "estudiante", texto }, { texto });
   }
@@ -166,7 +187,7 @@ export default function Inicio() {
       // Se reduce y se endereza en el navegador: gasta menos datos y no salen los metadatos.
       foto = await prepararFoto(archivo);
     } catch (error) {
-      avisar(error instanceof ErrorDeFoto ? error.message : "No se pudo preparar la foto. Probá con otra.");
+      avisar(error instanceof ErrorDeFoto ? error.message : "No se pudo preparar la foto. Probá con otra.", "error");
       return;
     }
     const id = nuevoId();
@@ -196,6 +217,7 @@ export default function Inicio() {
   function eliminarChat(id: string) {
     setChats((todos) => todos.filter((c) => c.id !== id));
     if (id === activoId) setActivoId(null);
+    if (id === sinRespuesta?.chatId) setSinRespuesta(null);
     avisar("Chat eliminado.");
   }
 
@@ -256,6 +278,9 @@ export default function Inicio() {
           </button>
         </header>
 
+        {/* Los avisos van en una franja bajo la barra: empujan la conversación en vez de taparla. */}
+        <Toasts toasts={toasts} onCerrar={(id) => setToasts((t) => t.filter((x) => x.id !== id))} />
+
         <div className={`chat-cuerpo ${vacio ? "chat-vacio" : ""}`}>
           {vacio ? (
             <Bienvenida />
@@ -265,6 +290,8 @@ export default function Inicio() {
               pensando={pensando}
               animar={animar}
               fotos={fotos}
+              sinRespuestaId={sinRespuesta?.chatId === activoId ? sinRespuesta.mensajeId : null}
+              onReintentar={reintentar}
             />
           )}
           <Redactor
@@ -286,7 +313,6 @@ export default function Inicio() {
       />
 
       <AvisoEntrada abierto={aviso.abierto} obligatorio={aviso.obligatorio} onAceptar={aceptarAviso} />
-      <Toasts toasts={toasts} onCerrar={(id) => setToasts((t) => t.filter((x) => x.id !== id))} />
     </div>
   );
 }
