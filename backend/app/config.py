@@ -40,6 +40,16 @@ def _decimal(nombre: str, por_defecto: float) -> float:
         return por_defecto
 
 
+def _lista(nombre: str, por_defecto: tuple[str, ...]) -> tuple[str, ...]:
+    """Lee una lista separada por comas. "ninguno" la deja vacía; sin valor, usa la de por defecto."""
+    crudo = os.environ.get(nombre, "").strip()
+    if not crudo:
+        return por_defecto
+    if crudo.lower() in ("ninguno", "ninguna", "no"):
+        return ()
+    return tuple(parte.strip() for parte in crudo.split(",") if parte.strip())
+
+
 def _texto(nombre: str, por_defecto: str) -> str:
     """Lee una variable de texto; si está vacía, usa el valor por defecto."""
     return os.environ.get(nombre, "").strip() or por_defecto
@@ -58,6 +68,7 @@ class Configuracion:
     tiempo_maximo_ia: float = 30.0
     gemini_razonamiento: str = "low"
     orden_proveedores: tuple[str, ...] = ("groq", "gemini", "mistral")
+    gemini_modelos_respaldo: tuple[str, ...] = ("gemini-3.5-flash", "gemini-3.1-flash-lite")
     database_url: str = "sqlite:///./maestro.db"
     limite_mensajes_sesion: int = 40
     limite_mensajes_dia: int = 150
@@ -78,11 +89,8 @@ def obtener_configuracion() -> Configuracion:
         mistral_modelo=_texto("MISTRAL_MODELO", Configuracion.mistral_modelo),
         tiempo_maximo_ia=_decimal("TIEMPO_MAXIMO_IA", Configuracion.tiempo_maximo_ia),
         gemini_razonamiento=_texto("GEMINI_RAZONAMIENTO", Configuracion.gemini_razonamiento).lower(),
-        orden_proveedores=tuple(
-            nombre.strip().lower()
-            for nombre in _texto("ORDEN_PROVEEDORES", ",".join(Configuracion.orden_proveedores)).split(",")
-            if nombre.strip()
-        ),
+        orden_proveedores=tuple(n.lower() for n in _lista("ORDEN_PROVEEDORES", Configuracion.orden_proveedores)),
+        gemini_modelos_respaldo=_lista("GEMINI_MODELOS_RESPALDO", Configuracion.gemini_modelos_respaldo),
         database_url=os.environ.get("DATABASE_URL", "sqlite:///./maestro.db"),
         limite_mensajes_sesion=_entero("LIMITE_MENSAJES_SESION", 40),
         limite_mensajes_dia=_entero("LIMITE_MENSAJES_DIA", 150),

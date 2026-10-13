@@ -49,7 +49,8 @@ def fabrica(resultados: dict, llamadas: dict):
 MENSAJES = [{"role": "user", "content": "hola"}]
 
 
-TODAS = dict(gemini_api_key="g", groq_api_key="q", mistral_api_key="m")
+# Sin respaldos de Gemini, para que estas pruebas hablen solo del orden entre proveedores.
+TODAS = dict(gemini_api_key="g", groq_api_key="q", mistral_api_key="m", gemini_modelos_respaldo=())
 
 
 def nombres(config: Configuracion) -> list[str]:
@@ -61,7 +62,8 @@ def test_por_defecto_groq_va_primero():
 
 
 def test_solo_entran_los_proveedores_con_llave():
-    assert nombres(Configuracion(gemini_api_key="g", groq_api_key="", mistral_api_key="m")) == ["gemini", "mistral"]
+    config = Configuracion(gemini_api_key="g", groq_api_key="", mistral_api_key="m", gemini_modelos_respaldo=())
+    assert nombres(config) == ["gemini", "mistral"]
 
 
 def test_el_orden_se_puede_cambiar():
@@ -177,13 +179,14 @@ def test_pide_json_solo_cuando_se_le_indica():
 
 
 def test_gemini_pide_poco_razonamiento_por_defecto():
-    extras = {p.nombre: p.extras for p in proveedores_disponibles(Configuracion(gemini_api_key="g", groq_api_key="q"))}
-    assert extras == {"gemini": {"reasoning_effort": "low"}, "groq": {}}
+    config = Configuracion(gemini_api_key="g", groq_api_key="q", gemini_modelos_respaldo=("otro-gemini",))
+    extras = [(p.etiqueta, p.extras) for p in proveedores_disponibles(config)]
+    assert extras == [("groq", {}), ("gemini", {"reasoning_effort": "low"}), ("gemini/otro-gemini", {"reasoning_effort": "low"})]
 
 
 def test_el_razonamiento_se_puede_dejar_normal():
     config = Configuracion(gemini_api_key="g", gemini_razonamiento="normal")
-    assert proveedores_disponibles(config)[0].extras == {}
+    assert all(p.extras == {} for p in proveedores_disponibles(config))
 
 
 def test_los_extras_viajan_en_la_consulta():
@@ -221,3 +224,51 @@ def test_un_400_sin_extras_si_cuenta_como_fallo():
         crear_cliente=fabrica({"groq": error, "mistral": '{"ok": 1}'}, {}),
     )
     assert r.proveedor == "mistral"
+
+
+# ---------- Modelos de respaldo de Gemini ----------
+
+
+def etiquetas(config: Configuracion) -> list[str]:
+    return [p.etiqueta for p in proveedores_disponibles(config)]
+
+
+def test_los_respaldos_de_gemini_van_justo_despues_del_principal():
+    config = Configuracion(gemini_api_key="g", groq_api_key="q", mistral_api_key="m")
+    assert etiquetas(config) == ["groq", "gemini", "gemini/gemini-3.5-flash", "gemini/gemini-3.1-flash-lite", "mistral"]
+
+
+def test_los_respaldos_usan_la_misma_llave_y_leen_fotos():
+    respaldos = [p for p in proveedores_disponibles(Configuracion(gemini_api_key="la-llave")) if p.es_respaldo]
+    assert len(respaldos) == 2
+    assert all(p.llave == "la-llave" and p.acepta_imagenes and p.nombre == "gemini" for p in respaldos)
+
+
+def test_sin_llave_de_gemini_no_hay_respaldos():
+    assert etiquetas(Configuracion(groq_api_key="q")) == ["groq"]
+
+
+def test_no_se_repite_el_modelo_principal_como_respaldo():
+    config = Configuracion(gemini_api_key="g", gemini_modelo="a", gemini_modelos_respaldo=("a", "b"))
+    assert etiquetas(config) == ["gemini", "gemini/b"]
+
+
+def test_si_el_principal_agota_su_cuota_una_foto_la_atiende_el_respaldo():
+    con_foto = [{"role": "user", "content": [{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,AAAA"}}]}]
+    config = Configuracion(gemini_api_key="g", groq_api_key="q", gemini_modelo="principal", gemini_modelos_respaldo=("respaldo",))
+    modelos_usados = []
+
+    def crear(p: Proveedor, tiempo_maximo: float):
+        modelos_usados.append(p.modelo)
+        return ClienteFalso(falla_http(429) if p.modelo == "principal" else '{"ok": 1}', [])
+
+    r = completar(con_foto, proveedores=proveedores_disponibles(config), crear_cliente=crear)
+    assert (r.proveedor, r.modelo) == ("gemini", "respaldo")
+    assert modelos_usados == ["principal", "respaldo"]
+
+
+def test_los_fallos_dicen_que_modelo_de_respaldo_fallo():
+    config = Configuracion(gemini_api_key="g", gemini_modelo="principal", gemini_modelos_respaldo=("respaldo",))
+    with pytest.raises(SinProveedores) as error:
+        completar(MENSAJES, proveedores=proveedores_disponibles(config), crear_cliente=lambda p, t: ClienteFalso(falla_http(429), []))
+    assert error.value.fallos == ["gemini: HTTP 429", "gemini/respaldo: HTTP 429"]

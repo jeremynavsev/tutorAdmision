@@ -6,6 +6,9 @@ cliente ``openai`` con otra URL base. Se prueban en el orden de
 (error, tiempo agotado, cuota llena, modelo retirado o respuesta vacía), se pasa
 al siguiente. Solo entran los proveedores que tienen llave en el ``.env``.
 
+Gemini puede llevar modelos de respaldo (``GEMINI_MODELOS_RESPALDO``): usan la
+misma llave y se prueban justo después del principal.
+
 Groq va primero porque es rápido y su límite gratuito aguanta; el plan gratuito
 de Gemini permite muy pocos pedidos por día, así que conviene guardarlo para las
 fotos, que Groq no lee.
@@ -45,6 +48,13 @@ class Proveedor:
     acepta_imagenes: bool
     extras: dict = field(default_factory=dict)
     """Parámetros propios del proveedor que se mandan en cada consulta."""
+    es_respaldo: bool = False
+    """Si es un modelo de respaldo del mismo proveedor (otro modelo, misma llave)."""
+
+    @property
+    def etiqueta(self) -> str:
+        """Nombre para los registros: el del proveedor, más el modelo si es un respaldo."""
+        return f"{self.nombre}/{self.modelo}" if self.es_respaldo else self.nombre
 
 
 @dataclass(frozen=True)
@@ -78,6 +88,20 @@ def proveedores_disponibles(config: Configuracion | None = None) -> list[Proveed
             llave=c.gemini_api_key,
             acepta_imagenes=True,
             extras=razonamiento,
+        ),
+        # Respaldos de Gemini: misma llave, otro modelo. Cada modelo tiene su propia cuota diaria.
+        *(
+            Proveedor(
+                nombre="gemini",
+                url_base="https://generativelanguage.googleapis.com/v1beta/openai/",
+                modelo=modelo,
+                llave=c.gemini_api_key,
+                acepta_imagenes=True,
+                extras=razonamiento,
+                es_respaldo=True,
+            )
+            for modelo in c.gemini_modelos_respaldo
+            if modelo != c.gemini_modelo
         ),
         Proveedor(
             nombre="groq",
@@ -145,7 +169,7 @@ def completar(
 
     for proveedor in lista:
         if con_imagen and not proveedor.acepta_imagenes:
-            fallos.append(f"{proveedor.nombre}: no lee imágenes")
+            fallos.append(f"{proveedor.etiqueta}: no lee imágenes")
             continue
         formato = {"response_format": {"type": "json_object"}} if json else {}
         try:
@@ -164,11 +188,11 @@ def completar(
         except Exception as error:  # cualquier fallo de un proveedor: se prueba el siguiente
             motivo = _describir_error(error)
             registro.warning("Proveedor %s (%s) falló: %s", proveedor.nombre, proveedor.modelo, motivo)
-            fallos.append(f"{proveedor.nombre}: {motivo}")
+            fallos.append(f"{proveedor.etiqueta}: {motivo}")
             continue
         if not texto:
             registro.warning("Proveedor %s (%s) devolvió una respuesta vacía", proveedor.nombre, proveedor.modelo)
-            fallos.append(f"{proveedor.nombre}: respuesta vacía")
+            fallos.append(f"{proveedor.etiqueta}: respuesta vacía")
             continue
         return RespuestaModelo(texto=texto, proveedor=proveedor.nombre, modelo=proveedor.modelo)
 
@@ -185,9 +209,9 @@ def _revisar_llaves() -> None:
     for proveedor in lista:
         try:
             r = completar(mensajes, proveedores=[proveedor])
-            print(f"✓ {proveedor.nombre} ({r.modelo}) responde")
+            print(f"✓ {proveedor.etiqueta} ({r.modelo}) responde")
         except SinProveedores as error:
-            print(f"✗ {proveedor.nombre} ({proveedor.modelo}): {error.fallos[0]}")
+            print(f"✗ {proveedor.etiqueta} ({proveedor.modelo}): {error.fallos[0]}")
 
 
 if __name__ == "__main__":

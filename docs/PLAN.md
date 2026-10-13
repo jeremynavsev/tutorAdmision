@@ -51,8 +51,20 @@ otros archivos.
 - [x] Pruebas con pytest para cada servicio, con los proveedores simulados.
 - [x] `servicios/tutor.py` une todo y `POST /api/chat` ya responde con IA real.
 
-Pendiente de esta fase: Gemini tarda de 6 a 9 segundos por respuesta; revisar si se puede
-bajar ajustando el razonamiento del modelo.
+**Lo que se aprendió sobre los proveedores (octubre de 2026):**
+
+- **Groq** va primero: responde en unos 2 segundos y su límite gratuito aguanta las
+  pruebas, pero no lee fotos y a veces se sale del voseo.
+- **Gemini** gratuito permite solo 20 pedidos por día por modelo y se satura seguido
+  (errores 503). Se usa para las fotos, con modelos de respaldo que suman cuota
+  (`GEMINI_MODELOS_RESPALDO`) y con poco razonamiento para que responda más rápido.
+- **Mistral**: su API ya no es gratuita (pago por uso o plan Pro). Sigue soportado en el
+  código por si se consigue una llave.
+- **Los planes gratuitos no alcanzan para el piloto** con estudiantes: hay que
+  presupuestar un plan de pago antes de la fase 6.
+- **Ollama** (modelos en un servidor propio) es gratis, sin cuotas y más privado, pero
+  necesita un servidor con tarjeta de video. Es una opción si la universidad presta uno,
+  o para servir un modelo con ajuste fino en la fase 5.
 
 ## Fase 2 — Conectar el frontend (3–5 días)
 
@@ -92,6 +104,8 @@ bajar ajustando el razonamiento del modelo.
 
 ## Fase 6 — Despliegue y piloto (2–3 semanas)
 
+- [ ] Decidir y presupuestar los proveedores de IA: los planes gratuitos no alcanzan para
+      varios estudiantes a la vez. Revisar también qué hace cada proveedor con los datos.
 - [ ] Frontend estático en un hosting gratuito; backend con el `Containerfile` en un
       servicio de contenedores; base de datos en Neon.
 - [ ] Piloto con colegios de la Región Brunca. Son menores de edad: hace falta el
