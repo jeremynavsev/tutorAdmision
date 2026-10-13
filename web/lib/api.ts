@@ -15,13 +15,45 @@ export type Ejercicio = {
   opciones: string[];
 };
 
+/** Segundos máximos de espera: una foto puede pasar por varios proveedores antes de responder. */
+const TIEMPO_MAXIMO_MS = 90_000;
+
+/** Error al hablar con el backend. `message` ya es un texto que se le puede mostrar al estudiante. */
+export class ErrorDeApi extends Error {
+  constructor(
+    mensaje: string,
+    /** Código HTTP, o 0 si no hubo respuesta (sin conexión, backend apagado o tiempo agotado). */
+    public readonly estado: number,
+  ) {
+    super(mensaje);
+    this.name = "ErrorDeApi";
+  }
+}
+
+const MENSAJE_SIN_CONEXION = "No hay conexión con el tutor. Revisá tu internet y probá de nuevo.";
+const MENSAJE_GENERICO = "Algo salió mal. Probá de nuevo en un ratito.";
+
 async function pedir<T>(ruta: string, opciones?: RequestInit): Promise<T> {
-  const respuesta = await fetch(`${API_URL}${ruta}`, {
-    headers: { "Content-Type": "application/json" },
-    ...opciones,
-  });
+  let respuesta: Response;
+  try {
+    respuesta = await fetch(`${API_URL}${ruta}`, {
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(TIEMPO_MAXIMO_MS),
+      ...opciones,
+    });
+  } catch {
+    throw new ErrorDeApi(MENSAJE_SIN_CONEXION, 0);
+  }
   if (!respuesta.ok) {
-    throw new Error(`Error ${respuesta.status} al llamar ${ruta}`);
+    // El backend manda en `detail` un mensaje pensado para el estudiante (400 y 503).
+    // En un 422 (datos que no cumplen el contrato) `detail` es una lista técnica: no se muestra.
+    let detalle: unknown;
+    try {
+      detalle = (await respuesta.json()).detail;
+    } catch {
+      detalle = undefined;
+    }
+    throw new ErrorDeApi(typeof detalle === "string" && detalle ? detalle : MENSAJE_GENERICO, respuesta.status);
   }
   return respuesta.json() as Promise<T>;
 }

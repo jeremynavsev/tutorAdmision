@@ -68,8 +68,8 @@ otros archivos.
 
 ## Fase 2 — Conectar el frontend (3–5 días)
 
-- [ ] Reemplazar `tutorSimulado` por una función que llame a `POST /api/chat`
-      (línea `const tutor = …` en `web/app/page.tsx`).
+- [x] Reemplazar `tutorSimulado` por una función que llame a `POST /api/chat`:
+      `web/lib/tutorRemoto.ts`. El simulado queda con `NEXT_PUBLIC_TUTOR=simulado`.
 - [ ] Mensajes de error con toasts: sin conexión, proveedor caído o límite alcanzado.
 - [ ] Opcional: mostrar la respuesta mientras el modelo la genera (streaming).
 

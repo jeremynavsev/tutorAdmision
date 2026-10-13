@@ -11,11 +11,14 @@ import Redactor from "@/components/Redactor";
 import Toasts, { type Toast } from "@/components/Toasts";
 import { cargarChats, guardarChats, nuevoId, tituloDesde, type Chat, type Mensaje } from "@/lib/chats";
 import { guardarBandera, leerBandera } from "@/lib/tema";
-import { MAX_HISTORIAL, type Contexto, type EntradaTutor, type Tutor } from "@/lib/contrato";
+import { MAX_HISTORIAL, type Contexto, type EntradaTutor, type RespuestaTutor, type Tutor } from "@/lib/contrato";
+import { tutorRemoto } from "@/lib/tutorRemoto";
 import { tutorSimulado } from "@/lib/tutorSimulado";
 
-// Para el tutor real, solo cambia esta línea por otra función que cumpla `Tutor`.
-const tutor: Tutor = tutorSimulado;
+// El tutor real habla con el backend. Con NEXT_PUBLIC_TUTOR=simulado se usa el de
+// mentiras, que sirve para mostrar la interfaz sin backend ni cuota de IA.
+const tutor: Tutor = process.env.NEXT_PUBLIC_TUTOR === "simulado" ? tutorSimulado : tutorRemoto;
+const MENSAJE_DE_ERROR = "Algo salió mal. Probá de nuevo en un ratito.";
 
 const CLAVE_AVISO = "maestro-aviso-aceptado";
 const SIN_ANOTACIONES: Chat["anotaciones"] = [];
@@ -37,6 +40,9 @@ function contextoDe(chat: Chat | undefined): Contexto {
     })),
   };
 }
+
+/** Para comparar apuntes: "-5 + 20 = 15" y "-5+20 = 15" son el mismo. */
+const sinEspacios = (texto: string) => texto.replace(/\s+/g, "").toLowerCase();
 
 /** Lee la foto como base64, sin el prefijo "data:image/...;base64,". */
 function leerBase64(archivo: File): Promise<string> {
@@ -121,18 +127,35 @@ export default function Inicio() {
     actualizarChat(chatId, (c) => ({ ...c, actualizado: Date.now(), mensajes: [...c.mensajes, mensaje] }));
 
     setPensandoEn(chatId);
-    const respuesta = await tutor(entrada, ctx);
-    setPensandoEn(null);
+    let respuesta: RespuestaTutor;
+    try {
+      respuesta = await tutor(entrada, ctx);
+    } catch (error) {
+      // El mensaje del estudiante se queda en el chat; solo se avisa que no hubo respuesta.
+      avisar(error instanceof Error && error.message ? error.message : MENSAJE_DE_ERROR);
+      return;
+    } finally {
+      setPensandoEn(null);
+    }
 
     const idRespuesta = nuevoId();
     setAnimar((a) => new Set(a).add(idRespuesta));
     actualizarChat(chatId, (c) => {
       const base = c.anotaciones.reduce((m, a) => Math.max(m, a.n), 0);
+      // El modelo a veces repite un apunte que ya escribió: no se vuelve a poner en la pizarra.
+      const escritos = new Set(c.anotaciones.flatMap((a) => (a.tipo === "apunte" ? [sinEspacios(a.texto)] : [])));
+      const nuevas = respuesta.anotaciones.filter((a) => {
+        if (a.tipo !== "apunte") return true;
+        const clave = sinEspacios(a.texto);
+        if (escritos.has(clave)) return false;
+        escritos.add(clave);
+        return true;
+      });
       return {
         ...c,
         actualizado: Date.now(),
         mensajes: [...c.mensajes, { id: idRespuesta, autor: "tutor", texto: respuesta.texto, pista: respuesta.pista }],
-        anotaciones: [...c.anotaciones, ...respuesta.anotaciones.map((a, i) => ({ ...a, n: base + i + 1 }))],
+        anotaciones: [...c.anotaciones, ...nuevas.map((a, i) => ({ ...a, n: base + i + 1 }))],
       };
     });
 

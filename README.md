@@ -14,11 +14,10 @@ Un mae que te acompaña a estudiar.
 
 ## Estado
 
-**En desarrollo.** El backend ya responde con IA real: `POST /api/chat` limpia la foto si
-viene, consulta la cadena de proveedores (Groq → Gemini → Mistral) con las instrucciones
-del tutor y revisa que la respuesta no regale el resultado. El frontend tiene la interfaz
-completa de agente (menú de chats, conversación y pizarra), pero todavía usa un **tutor
-simulado** (`web/lib/tutorSimulado.ts`); conectarlo al backend es la fase 2. Faltan los
+**En desarrollo.** El tutor ya funciona con IA real de punta a punta: la página (menú de
+chats, conversación y pizarra) le manda cada mensaje a `POST /api/chat`, que limpia la
+foto si viene, consulta la cadena de proveedores (Groq → Gemini → Mistral) con las
+instrucciones del tutor y revisa que la respuesta no regale el resultado. Faltan los
 límites de uso, la base de datos y el banco de ejercicios. El plan de desarrollo está en [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Estructura
@@ -47,7 +46,8 @@ prototipo/
 │   └── lib/
 │       ├── contrato.ts      Tipos del contrato del tutor (espejo de esquemas.py)
 │       ├── api.ts           Funciones para llamar al backend
-│       ├── tutorSimulado.ts Tutor de prueba (se reemplaza por la llamada real)
+│       ├── tutorRemoto.ts   Tutor real: llama al backend
+│       ├── tutorSimulado.ts Tutor de mentiras, para mostrar la interfaz sin backend
 │       ├── chats.ts         Historial de chats (por ahora en localStorage)
 │       ├── trazos.ts        Círculos y trazos "a mano" de la pizarra
 │       └── tema.ts          Modo claro/oscuro
@@ -142,6 +142,9 @@ npm run dev
 ```
 
 Abrí <http://localhost:3100>.
+
+La página necesita el backend corriendo. Para verla sin backend ni llaves de IA, poné
+`NEXT_PUBLIC_TUTOR=simulado` en `web/.env.local`: responde un tutor de mentiras.
 
 Para generar el sitio estático (queda en `web/out/`):
 
