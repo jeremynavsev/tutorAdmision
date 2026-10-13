@@ -15,7 +15,8 @@ export type Anotacion =
   /** Escribe una línea con tiza en la zona de apuntes. */
   | { tipo: "apunte"; texto: string };
 
-export type NumeroPista = 1 | 2 | 3;
+/** Número de pista (1, 2, 3...). No hay un tope fijo: las pistas se adaptan al estudiante. */
+export type NumeroPista = number;
 
 /** Un mensaje anterior de la conversación. */
 export type MensajeHistorial = { autor: "estudiante" | "tutor"; texto: string; pista?: NumeroPista };

@@ -1,0 +1,191 @@
+"""Pruebas del agente: armado de la conversación y lectura de la respuesta del modelo."""
+
+import json
+
+import pytest
+
+from app.esquemas import AnotacionApunte, AnotacionCirculo, AnotacionEnunciado, ChatEntrada
+from app.servicios.agente import RespuestaInvalida, armar_conversacion, interpretar_respuesta
+
+ENUNCIADO = "Unas tenis costaban ₡40 000 y ahora cuestan ₡46 000. ¿En qué porcentaje aumentó el precio?"
+
+
+# ---------- armar_conversacion ----------
+
+
+def test_empieza_con_las_instrucciones_y_el_estado():
+    entrada = ChatEntrada(mensaje="Dame una pista", contexto={"enunciado": ENUNCIADO, "pistas_dadas": 2})
+    sistema = armar_conversacion(entrada)[0]
+    assert sistema["role"] == "system"
+    assert "Nunca des la respuesta final" in sistema["content"]
+    assert f"Problema en la pizarra: {ENUNCIADO}" in sistema["content"]
+    assert "Pistas ya dadas: 2" in sistema["content"]
+
+
+def test_sin_problema_lo_dice():
+    sistema = armar_conversacion(ChatEntrada(mensaje="hola"))[0]["content"]
+    assert "Problema en la pizarra: todavía no hay" in sistema
+
+
+def test_las_instrucciones_prohiben_mae_y_pura_vida():
+    sistema = armar_conversacion(ChatEntrada(mensaje="hola"))[0]["content"]
+    assert 'Prohibido usar "mae" y "pura vida"' in sistema
+
+
+def test_las_instrucciones_piden_voseo_sin_tuteo():
+    sistema = armar_conversacion(ChatEntrada(mensaje="hola"))[0]["content"]
+    assert "Nunca tuteés" in sistema
+
+
+def test_las_instrucciones_dicen_que_hacer_con_las_fotos():
+    sistema = armar_conversacion(ChatEntrada(mensaje="hola"))[0]["content"]
+    assert "## Cuando llega una foto" in sistema
+    assert "pedile que la tome de nuevo" in sistema
+    assert "comentá su procedimiento" in sistema
+
+
+def test_traduce_el_historial_a_roles_del_modelo():
+    entrada = ChatEntrada(
+        mensaje="creo que es 6000",
+        historial=[
+            {"autor": "estudiante", "texto": ENUNCIADO},
+            {"autor": "tutor", "texto": "¿Qué te piden?", "pista": None},
+            {"autor": "estudiante", "texto": "   "},
+        ],
+    )
+    mensajes = armar_conversacion(entrada)
+    assert [m["role"] for m in mensajes] == ["system", "user", "assistant", "user"]
+    assert mensajes[-1]["content"] == "creo que es 6000"
+
+
+def test_la_foto_va_como_imagen_con_su_tipo():
+    entrada = ChatEntrada(mensaje="", imagen_base64="iVBORw0KGgoAAAA")
+    ultimo = armar_conversacion(entrada)[-1]
+    texto, imagen = ultimo["content"]
+    assert texto["type"] == "text" and texto["text"]
+    assert imagen["image_url"]["url"].startswith("data:image/png;base64,iVBOR")
+
+
+def test_los_ejercicios_parecidos_van_solo_en_las_instrucciones():
+    from app.esquemas import Ejercicio
+
+    parecido = Ejercicio(
+        id="x",
+        tema="Porcentajes",
+        area="Matemática",
+        enunciado="Un libro sube de 100 a 120. ¿Cuánto aumentó?",
+        opciones=[],
+        solucion={"tipo": "numero", "valor": "20"},
+        pasos=["Restá los precios"],
+        errores_comunes=["Dividir entre el precio nuevo"],
+    )
+    sistema = armar_conversacion(ChatEntrada(mensaje="hola"), [parecido])[0]["content"]
+    assert "solo para vos" in sistema
+    assert "Error común: Dividir entre el precio nuevo" in sistema
+
+
+# ---------- interpretar_respuesta ----------
+
+
+def respuesta(**campos) -> str:
+    return json.dumps({"texto": "¿Qué te piden?", "pista": None, "anotaciones": [], **campos}, ensure_ascii=False)
+
+
+def test_lee_una_respuesta_completa():
+    salida = interpretar_respuesta(
+        respuesta(
+            pista=1,
+            anotaciones=[
+                {"tipo": "enunciado", "texto": ENUNCIADO},
+                {"tipo": "circulo", "dato": "₡40 000"},
+                {"tipo": "apunte", "texto": "aumento = 46 000 − 40 000"},
+            ],
+        ),
+        proveedor="gemini",
+    )
+    assert salida.pista == 1 and salida.proveedor == "gemini"
+    assert [type(a) for a in salida.anotaciones] == [AnotacionEnunciado, AnotacionCirculo, AnotacionApunte]
+
+
+@pytest.mark.parametrize("envoltorio", ["```json\n{}\n```", "```\n{}\n```", "Claro, aquí va: {} ¡Suerte!"])
+def test_acepta_json_envuelto(envoltorio):
+    texto = envoltorio.replace("{}", respuesta())
+    assert interpretar_respuesta(texto, "groq").texto == "¿Qué te piden?"
+
+
+@pytest.mark.parametrize("malo", ["no es json", "[1, 2]", '{"pista": 1}', '{"texto": "   "}', '{"texto": "a",'])
+def test_rechaza_lo_que_no_sirve(malo):
+    with pytest.raises(RespuestaInvalida):
+        interpretar_respuesta(malo, "gemini")
+
+
+def test_descarta_circulos_sobre_datos_que_no_estan_en_el_enunciado():
+    salida = interpretar_respuesta(
+        respuesta(anotaciones=[{"tipo": "circulo", "dato": "₡40 000"}, {"tipo": "circulo", "dato": "₡99 999"}]),
+        "gemini",
+        enunciado_actual=ENUNCIADO,
+    )
+    assert [a.dato for a in salida.anotaciones] == ["₡40 000"]
+
+
+def test_sin_enunciado_no_hay_circulos():
+    salida = interpretar_respuesta(respuesta(anotaciones=[{"tipo": "circulo", "dato": "40"}]), "gemini")
+    assert salida.anotaciones == []
+
+
+def test_como_maximo_cuatro_circulos():
+    datos = ["₡40 000", "₡46 000", "porcentaje", "precio", "tenis"]
+    salida = interpretar_respuesta(
+        respuesta(anotaciones=[{"tipo": "circulo", "dato": d} for d in datos]), "gemini", enunciado_actual=ENUNCIADO
+    )
+    assert len(salida.anotaciones) == 4
+
+
+def test_descarta_anotaciones_mal_formadas_sin_perder_las_buenas():
+    salida = interpretar_respuesta(
+        respuesta(
+            anotaciones=[
+                {"tipo": "dibujo", "texto": "x"},
+                {"tipo": "apunte", "texto": "x" * 500},
+                "texto suelto",
+                {"tipo": "apunte", "texto": "datos: 40 000 y 46 000"},
+            ]
+        ),
+        "gemini",
+    )
+    assert [a.texto for a in salida.anotaciones] == ["datos: 40 000 y 46 000"]
+
+
+@pytest.mark.parametrize("pista, esperado", [(1, 1), (5, 5), ("2", 2), (0, None), (21, None), (True, None), ("x", None)])
+def test_normaliza_el_numero_de_pista(pista, esperado):
+    assert interpretar_respuesta(respuesta(pista=pista), "gemini").pista == esperado
+
+
+def test_no_vuelve_a_copiar_el_mismo_enunciado():
+    repetido = ENUNCIADO.replace(" ", "  ").upper()
+    salida = interpretar_respuesta(
+        respuesta(anotaciones=[{"tipo": "enunciado", "texto": repetido}, {"tipo": "circulo", "dato": "₡40 000"}]),
+        "groq",
+        enunciado_actual=ENUNCIADO,
+    )
+    assert [type(a) for a in salida.anotaciones] == [AnotacionCirculo]
+
+
+def test_un_problema_nuevo_si_se_copia():
+    otro = "Si 3x + 5 = 20, ¿cuánto vale x?"
+    salida = interpretar_respuesta(
+        respuesta(anotaciones=[{"tipo": "enunciado", "texto": otro}, {"tipo": "circulo", "dato": "20"}]),
+        "gemini",
+        enunciado_actual=ENUNCIADO,
+    )
+    assert [type(a) for a in salida.anotaciones] == [AnotacionEnunciado, AnotacionCirculo]
+
+
+def test_recopiar_solo_la_ecuacion_tambien_es_el_mismo_problema():
+    actual = "cual es el valor de x? 3x-5+20=50"
+    salida = interpretar_respuesta(
+        respuesta(anotaciones=[{"tipo": "enunciado", "texto": "3x - 5 + 20 = 50"}, {"tipo": "circulo", "dato": "50"}]),
+        "groq",
+        enunciado_actual=actual,
+    )
+    assert [type(a) for a in salida.anotaciones] == [AnotacionCirculo]

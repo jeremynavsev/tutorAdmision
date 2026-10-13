@@ -1,10 +1,10 @@
-fastapi
-uvicorn[standard]
-pydantic
-openai
-sympy
-sqlalchemy
-psycopg[binary]
-pillow
-pytest
-httpx
+# Dependencias del backend en producción, con versión fija para que todos instalen lo mismo.
+# Para actualizar una: cambiá el número, corré las pruebas y, si pasan, se commitea.
+fastapi==0.143.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+openai==3.29.0
+sympy==1.14.0
+sqlalchemy==2.1.4
+psycopg[binary]==3.3.6
+pillow==12.3.0

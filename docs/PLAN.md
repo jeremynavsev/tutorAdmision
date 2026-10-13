@@ -39,16 +39,32 @@ otros archivos.
 
 ## Fase 1 — Backend con IA real (1–2 semanas)
 
-- [ ] `servicios/modelos_ia.py`: cadena Gemini → Groq → Mistral con el cliente `openai`,
+- [x] `servicios/modelos_ia.py`: cadena Groq → Gemini → Mistral con el cliente `openai`,
       con tiempo máximo y paso automático al siguiente proveedor si uno falla.
-- [ ] `servicios/agente.py`: instrucciones del sistema (voseo, guiar con preguntas, tres
-      niveles de pista, nunca dar la respuesta) y respuesta en **JSON estructurado** con el
+- [x] `servicios/agente.py`: instrucciones del sistema (voseo, guiar con preguntas, pistas
+      que se adaptan al estudiante, nunca dar la respuesta) y respuesta en **JSON estructurado** con el
       texto y las anotaciones de la pizarra.
-- [ ] `servicios/verificador.py`: con SymPy, revisar que el tutor no filtre el resultado
+- [x] `servicios/verificador.py`: con SymPy, revisar que el tutor no filtre el resultado
       final; si lo filtra, regenerar la respuesta.
-- [ ] `servicios/imagenes.py`: quitar metadatos y reducir la foto antes de pasarla al
+- [x] `servicios/imagenes.py`: quitar metadatos y reducir la foto antes de pasarla al
       modelo con visión.
-- [ ] Pruebas con pytest para cada servicio, con los proveedores simulados.
+- [x] Pruebas con pytest para cada servicio, con los proveedores simulados.
+- [x] `servicios/tutor.py` une todo y `POST /api/chat` ya responde con IA real.
+
+**Lo que se aprendió sobre los proveedores (octubre de 2026):**
+
+- **Groq** va primero: responde en unos 2 segundos y su límite gratuito aguanta las
+  pruebas, pero no lee fotos y a veces se sale del voseo.
+- **Gemini** gratuito permite solo 20 pedidos por día por modelo y se satura seguido
+  (errores 503). Se usa para las fotos, con modelos de respaldo que suman cuota
+  (`GEMINI_MODELOS_RESPALDO`) y con poco razonamiento para que responda más rápido.
+- **Mistral**: su API ya no es gratuita (pago por uso o plan Pro). Sigue soportado en el
+  código por si se consigue una llave.
+- **Los planes gratuitos no alcanzan para el piloto** con estudiantes: hay que
+  presupuestar un plan de pago antes de la fase 6.
+- **Ollama** (modelos en un servidor propio) es gratis, sin cuotas y más privado, pero
+  necesita un servidor con tarjeta de video. Es una opción si la universidad presta uno,
+  o para servir un modelo con ajuste fino en la fase 5.
 
 ## Fase 2 — Conectar el frontend (3–5 días)
 
@@ -88,6 +104,8 @@ otros archivos.
 
 ## Fase 6 — Despliegue y piloto (2–3 semanas)
 
+- [ ] Decidir y presupuestar los proveedores de IA: los planes gratuitos no alcanzan para
+      varios estudiantes a la vez. Revisar también qué hace cada proveedor con los datos.
 - [ ] Frontend estático en un hosting gratuito; backend con el `Containerfile` en un
       servicio de contenedores; base de datos en Neon.
 - [ ] Piloto con colegios de la Región Brunca. Son menores de edad: hace falta el

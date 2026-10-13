@@ -51,11 +51,13 @@ export function extraerDatos(enunciado: string): string[] {
 }
 
 /** ¿Parece el enunciado de un problema y no una charla? */
-function pareceProblema(texto: string) {
+export function pareceProblema(texto: string) {
   const t = normalizar(texto);
   const tieneNumeros = /\d/.test(t);
   const tienePregunta = /\?|cual|cuanto|cuantos|calcule|determine|encuentre|halle|que numero|sigue/.test(t);
-  return texto.length >= 35 && (tieneNumeros || tienePregunta);
+  // Una ecuación u operación con números ("3x-5+20=50", "6000 ÷ 40 000") ya es un problema, aunque sea corta.
+  const tieneOperacion = /\d\s*[a-z]?\s*[=+\-*/×÷^<>]\s*[\d(a-z]/.test(t);
+  return tieneOperacion || (tieneNumeros && tienePregunta) || (texto.length >= 35 && (tieneNumeros || tienePregunta));
 }
 
 const pausa = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -97,19 +99,19 @@ function responderSincrono({ texto, fotoBase64 }: EntradaTutor, { enunciado, pis
     }
     if (pideRespuesta) {
       return {
-        texto: "La respuesta no te la voy a dar, mae, pero sí te acompaño. Primero mandame el problema: escribilo o tomale una foto.",
+        texto: "La respuesta no te la voy a dar, pero sí te acompaño. Primero mandame el problema: escribilo o tomale una foto.",
         anotaciones: [],
       };
     }
     return {
       texto:
-        "¡Diay, mae! Mandame el problema que querés practicar: escribilo completo, con las opciones si las tiene, y lo copio en la pizarra.",
+        "¡Hola! Mandame el problema que querés practicar: escribilo completo, con las opciones si las tiene, y lo copio en la pizarra.",
       anotaciones: [],
     };
   }
 
   if (pideRespuesta) {
-    return siguientePista(pistasDadas, "Eso no te lo voy a dar, mae: si te lo digo, no aprendés el truco. Pero te ayudo: ");
+    return siguientePista(pistasDadas, "Eso no te lo voy a dar: si te lo digo, no aprendés el truco. Pero te ayudo: ");
   }
 
   if (/pista|ayuda|no se|no entiendo|por donde|empiezo|empezar|perdid/.test(t)) {

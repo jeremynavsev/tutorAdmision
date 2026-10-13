@@ -50,7 +50,7 @@
             if [ ! -x backend/.venv/bin/uvicorn ]; then
               echo "→ Creando backend/.venv e instalando dependencias (solo la primera vez)..."
               PIP_DISABLE_PIP_VERSION_CHECK=1 python3.12 -m venv backend/.venv \
-                && PIP_DISABLE_PIP_VERSION_CHECK=1 backend/.venv/bin/pip install -q -r backend/requirements.txt \
+                && PIP_DISABLE_PIP_VERSION_CHECK=1 backend/.venv/bin/pip install -q -r backend/requirements-dev.txt \
                 || echo "  Aviso: falló la instalación del backend."
             fi
             if corriendo backend; then
@@ -59,7 +59,9 @@
               echo "→ Aviso: el puerto 8100 está ocupado por otro programa. Backend no iniciado."
             elif [ -x backend/.venv/bin/uvicorn ]; then
               echo "→ Iniciando backend en http://localhost:8100"
-              (cd backend || exit; setsid nohup .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8100 \
+              # Se cierran los descriptores heredados: direnv lee el entorno por el 3 y, si
+              # el servidor se lo queda abierto, direnv espera para siempre y la terminal se pega.
+              (exec 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&-; cd backend || exit; setsid nohup .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8100 \
                 > "$LOGS/backend.log" 2>&1 < /dev/null & echo $! > "$RAIZ/.dev/backend.pid")
             fi
 
@@ -74,7 +76,9 @@
               echo "→ Aviso: el puerto 3100 está ocupado por otro programa. Frontend no iniciado."
             elif [ -d web/node_modules ]; then
               echo "→ Iniciando frontend en http://localhost:3100"
-              (cd web || exit; setsid nohup npx next dev -p 3100 \
+              # Se cierran los descriptores heredados: direnv lee el entorno por el 3 y, si
+              # el servidor se lo queda abierto, direnv espera para siempre y la terminal se pega.
+              (exec 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&-; cd web || exit; setsid nohup npx next dev -p 3100 \
                 > "$LOGS/frontend.log" 2>&1 < /dev/null & echo $! > "$RAIZ/.dev/frontend.pid")
             fi
 
