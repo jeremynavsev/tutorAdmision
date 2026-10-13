@@ -7,7 +7,7 @@
 :root,
 :root[data-theme="light"] {
   color-scheme: light;
-  --fondo: #b0f2c2;
+  --fondo: #b3ccae;
   --neblina: #f4f6f2;
   --papel: #ffffff;
   --helecho: #e1ebe2;
@@ -17,6 +17,9 @@
   --guaria: #7a4e9e;
   --carbon: #1c2420;
   --carbon-suave: #56635b;
+  /* Para texto que va directo sobre --fondo: más oscuros, para cumplir contraste AA. */
+  --suave-sobre-fondo: #444f48;
+  --guaria-sobre-fondo: #613e7e;
   --sobre-cafetal: #f4f6f2;
   --pizarra: #1e3f31;
   --pizarra-borde: #163126;
@@ -40,6 +43,8 @@
     --guaria: #c3a2e0;
     --carbon: #e6ede8;
     --carbon-suave: #9fb0a6;
+    --suave-sobre-fondo: #9fb0a6;
+    --guaria-sobre-fondo: #c3a2e0;
     --sobre-cafetal: #0f1613;
     --pizarra: #193328;
     --pizarra-borde: #10231b;
@@ -63,6 +68,8 @@
   --guaria: #c3a2e0;
   --carbon: #e6ede8;
   --carbon-suave: #9fb0a6;
+  --suave-sobre-fondo: #9fb0a6;
+  --guaria-sobre-fondo: #c3a2e0;
   --sobre-cafetal: #0f1613;
   --pizarra: #193328;
   --pizarra-borde: #10231b;
@@ -846,7 +853,7 @@ button {
   gap: 0.25rem;
   font-family: var(--fuente-texto), system-ui, sans-serif;
   font-weight: 700;
-  color: var(--guaria);
+  color: var(--guaria-sobre-fondo);
 }
 
 .numero-pista {
@@ -871,7 +878,7 @@ button {
 
 .numero-pista path {
   fill: none;
-  stroke: var(--guaria);
+  stroke: var(--guaria-sobre-fondo);
   stroke-width: 1.8;
   stroke-linecap: round;
 }
@@ -963,7 +970,7 @@ button {
 }
 
 .bienvenida-texto {
-  color: var(--carbon-suave);
+  color: var(--suave-sobre-fondo);
   max-width: 32rem;
 }
 
