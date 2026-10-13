@@ -51,11 +51,13 @@ export function extraerDatos(enunciado: string): string[] {
 }
 
 /** ¿Parece el enunciado de un problema y no una charla? */
-function pareceProblema(texto: string) {
+export function pareceProblema(texto: string) {
   const t = normalizar(texto);
   const tieneNumeros = /\d/.test(t);
   const tienePregunta = /\?|cual|cuanto|cuantos|calcule|determine|encuentre|halle|que numero|sigue/.test(t);
-  return texto.length >= 35 && (tieneNumeros || tienePregunta);
+  // Una ecuación u operación con números ("3x-5+20=50", "6000 ÷ 40 000") ya es un problema, aunque sea corta.
+  const tieneOperacion = /\d\s*[a-z]?\s*[=+\-*/×÷^<>]\s*[\d(a-z]/.test(t);
+  return tieneOperacion || (tieneNumeros && tienePregunta) || (texto.length >= 35 && (tieneNumeros || tienePregunta));
 }
 
 const pausa = (ms: number) => new Promise((r) => setTimeout(r, ms));
