@@ -17,7 +17,7 @@ Para revisar las llaves desde la terminal:
 
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import openai
 from openai import OpenAI
@@ -38,6 +38,8 @@ class Proveedor:
     modelo: str
     llave: str
     acepta_imagenes: bool
+    extras: dict = field(default_factory=dict)
+    """Parámetros propios del proveedor que se mandan en cada consulta."""
 
 
 @dataclass(frozen=True)
@@ -61,6 +63,8 @@ class SinProveedores(Exception):
 def proveedores_disponibles(config: Configuracion | None = None) -> list[Proveedor]:
     """Lista los proveedores con llave configurada, en orden de prioridad."""
     c = config or obtener_configuracion()
+    # Con poco razonamiento Gemini responde mucho más rápido; "normal" deja el valor del modelo.
+    razonamiento = {} if c.gemini_razonamiento in ("", "normal") else {"reasoning_effort": c.gemini_razonamiento}
     candidatos = [
         Proveedor(
             nombre="gemini",
@@ -68,6 +72,7 @@ def proveedores_disponibles(config: Configuracion | None = None) -> list[Proveed
             modelo=c.gemini_modelo,
             llave=c.gemini_api_key,
             acepta_imagenes=True,
+            extras=razonamiento,
         ),
         Proveedor(
             nombre="groq",
@@ -133,10 +138,19 @@ def completar(
         if con_imagen and not proveedor.acepta_imagenes:
             fallos.append(f"{proveedor.nombre}: no lee imágenes")
             continue
-        extras = {"response_format": {"type": "json_object"}} if json else {}
+        formato = {"response_format": {"type": "json_object"}} if json else {}
         try:
             cliente = crear_cliente(proveedor, espera)
-            respuesta = cliente.chat.completions.create(model=proveedor.modelo, messages=mensajes, **extras)
+            try:
+                respuesta = cliente.chat.completions.create(
+                    model=proveedor.modelo, messages=mensajes, **formato, **proveedor.extras
+                )
+            except openai.BadRequestError:
+                # El proveedor no aceptó sus parámetros propios: se intenta sin ellos antes de rendirse.
+                if not proveedor.extras:
+                    raise
+                registro.warning("Proveedor %s no aceptó %s; se reintenta sin eso.", proveedor.nombre, sorted(proveedor.extras))
+                respuesta = cliente.chat.completions.create(model=proveedor.modelo, messages=mensajes, **formato)
             texto = (respuesta.choices[0].message.content or "").strip() if respuesta.choices else ""
         except Exception as error:  # cualquier fallo de un proveedor: se prueba el siguiente
             motivo = _describir_error(error)

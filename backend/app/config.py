@@ -56,6 +56,7 @@ class Configuracion:
     groq_modelo: str = "openai/gpt-oss-120b"
     mistral_modelo: str = "mistral-small-latest"
     tiempo_maximo_ia: float = 30.0
+    gemini_razonamiento: str = "low"
     database_url: str = "sqlite:///./maestro.db"
     limite_mensajes_sesion: int = 40
     limite_mensajes_dia: int = 150
@@ -75,6 +76,7 @@ def obtener_configuracion() -> Configuracion:
         groq_modelo=_texto("GROQ_MODELO", Configuracion.groq_modelo),
         mistral_modelo=_texto("MISTRAL_MODELO", Configuracion.mistral_modelo),
         tiempo_maximo_ia=_decimal("TIEMPO_MAXIMO_IA", Configuracion.tiempo_maximo_ia),
+        gemini_razonamiento=_texto("GEMINI_RAZONAMIENTO", Configuracion.gemini_razonamiento).lower(),
         database_url=os.environ.get("DATABASE_URL", "sqlite:///./maestro.db"),
         limite_mensajes_sesion=_entero("LIMITE_MENSAJES_SESION", 40),
         limite_mensajes_dia=_entero("LIMITE_MENSAJES_DIA", 150),

@@ -140,3 +140,54 @@ def test_pide_json_solo_cuando_se_le_indica():
     completar(MENSAJES, json=False, proveedores=[proveedor("gemini")], crear_cliente=crear)
     assert llamadas["gemini"][0]["response_format"] == {"type": "json_object"}
     assert "response_format" not in llamadas["gemini"][1]
+
+
+# ---------- Parámetros propios del proveedor (razonamiento de Gemini) ----------
+
+
+def test_gemini_pide_poco_razonamiento_por_defecto():
+    gemini = proveedores_disponibles(Configuracion(gemini_api_key="g", groq_api_key="q"))
+    assert gemini[0].extras == {"reasoning_effort": "low"}
+    assert gemini[1].extras == {}
+
+
+def test_el_razonamiento_se_puede_dejar_normal():
+    config = Configuracion(gemini_api_key="g", gemini_razonamiento="normal")
+    assert proveedores_disponibles(config)[0].extras == {}
+
+
+def test_los_extras_viajan_en_la_consulta():
+    llamadas: dict = {}
+    con_extras = Proveedor("gemini", "https://falso", "m", "llave", True, extras={"reasoning_effort": "low"})
+    completar(MENSAJES, proveedores=[con_extras], crear_cliente=fabrica({"gemini": "{}"}, llamadas))
+    assert llamadas["gemini"][0]["reasoning_effort"] == "low"
+    assert llamadas["gemini"][0]["response_format"] == {"type": "json_object"}
+
+
+def test_si_el_proveedor_rechaza_los_extras_reintenta_sin_ellos():
+    llamadas: list = []
+
+    class RechazaExtras:
+        def __init__(self):
+            self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.crear))
+
+        def crear(self, **argumentos):
+            llamadas.append(argumentos)
+            if "reasoning_effort" in argumentos:
+                raise openai.BadRequestError("no", response=httpx.Response(400, request=PETICION), body=None)
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content='{"ok": 1}'))])
+
+    con_extras = Proveedor("gemini", "https://falso", "m", "llave", True, extras={"reasoning_effort": "low"})
+    r = completar(MENSAJES, proveedores=[con_extras], crear_cliente=lambda p, t: RechazaExtras())
+    assert r.texto == '{"ok": 1}'
+    assert len(llamadas) == 2 and "reasoning_effort" not in llamadas[1]
+
+
+def test_un_400_sin_extras_si_cuenta_como_fallo():
+    error = openai.BadRequestError("no", response=httpx.Response(400, request=PETICION), body=None)
+    r = completar(
+        MENSAJES,
+        proveedores=[proveedor("groq"), proveedor("mistral")],
+        crear_cliente=fabrica({"groq": error, "mistral": '{"ok": 1}'}, {}),
+    )
+    assert r.proveedor == "mistral"
