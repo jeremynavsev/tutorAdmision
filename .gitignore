@@ -1,0 +1,26 @@
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+backend/*.db
+
+# Variables de entorno (nunca se suben)
+.env
+.env.local
+
+# Next.js
+web/node_modules/
+web/.next/
+web/out/
+web/next-env.d.ts
+*.tsbuildinfo
+
+# Editores y sistema
+.vscode/
+.idea/
+.DS_Store
+
+# Entorno de desarrollo (direnv + Nix)
+.direnv/
+.dev/

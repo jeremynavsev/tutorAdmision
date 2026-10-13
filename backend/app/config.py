@@ -1,0 +1,62 @@
+"""Configuración del backend.
+
+Lee las variables de entorno y, si existe, el archivo ``backend/.env``, sin
+dependencias extra: el .env se interpreta con un lector mínimo de líneas
+``CLAVE=valor``. Las variables ya definidas en el entorno tienen prioridad.
+"""
+
+import os
+from dataclasses import dataclass, field
+from functools import lru_cache
+from pathlib import Path
+
+RAIZ_BACKEND = Path(__file__).resolve().parent.parent
+
+
+def _cargar_env(ruta: Path) -> None:
+    """Carga un archivo .env en ``os.environ`` sin pisar variables existentes."""
+    if not ruta.is_file():
+        return
+    for linea in ruta.read_text(encoding="utf-8").splitlines():
+        linea = linea.strip()
+        if not linea or linea.startswith("#") or "=" not in linea:
+            continue
+        clave, valor = linea.split("=", 1)
+        valor = valor.strip().strip('"').strip("'")
+        os.environ.setdefault(clave.strip(), valor)
+
+
+def _entero(nombre: str, por_defecto: int) -> int:
+    try:
+        return int(os.environ.get(nombre, por_defecto))
+    except ValueError:
+        return por_defecto
+
+
+@dataclass(frozen=True)
+class Configuracion:
+    """Valores de configuración de la aplicación."""
+
+    gemini_api_key: str = ""
+    groq_api_key: str = ""
+    mistral_api_key: str = ""
+    database_url: str = "sqlite:///./maestro.db"
+    limite_mensajes_sesion: int = 40
+    limite_mensajes_dia: int = 150
+    origenes_permitidos: list[str] = field(default_factory=lambda: ["http://localhost:3100"])
+
+
+@lru_cache
+def obtener_configuracion() -> Configuracion:
+    """Devuelve la configuración, leyendo el .env una sola vez."""
+    _cargar_env(RAIZ_BACKEND / ".env")
+    origenes = os.environ.get("ORIGENES_PERMITIDOS", "http://localhost:3100")
+    return Configuracion(
+        gemini_api_key=os.environ.get("GEMINI_API_KEY", ""),
+        groq_api_key=os.environ.get("GROQ_API_KEY", ""),
+        mistral_api_key=os.environ.get("MISTRAL_API_KEY", ""),
+        database_url=os.environ.get("DATABASE_URL", "sqlite:///./maestro.db"),
+        limite_mensajes_sesion=_entero("LIMITE_MENSAJES_SESION", 40),
+        limite_mensajes_dia=_entero("LIMITE_MENSAJES_DIA", 150),
+        origenes_permitidos=[o.strip() for o in origenes.split(",") if o.strip()],
+    )

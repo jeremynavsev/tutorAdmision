@@ -1,0 +1,22 @@
+# Imagen del backend de MAEstro, compatible con Podman.
+# Construir:  podman build -t maestro-backend -f Containerfile .
+# Correr:     podman run --rm -p 8100:8100 --env-file .env maestro-backend
+FROM docker.io/library/python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app ./app
+COPY ejercicios ./ejercicios
+
+# Usuario sin privilegios.
+RUN useradd --create-home maestro
+USER maestro
+
+EXPOSE 8100
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8100"]
