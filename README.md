@@ -15,7 +15,7 @@ Un mae que te acompaña a estudiar.
 ## Estado
 
 **En desarrollo.** El backend ya responde con IA real: `POST /api/chat` limpia la foto si
-viene, consulta la cadena de proveedores (Gemini → Groq → Mistral) con las instrucciones
+viene, consulta la cadena de proveedores (Groq → Gemini → Mistral) con las instrucciones
 del tutor y revisa que la respuesta no regale el resultado. El frontend tiene la interfaz
 completa de agente (menú de chats, conversación y pizarra), pero todavía usa un **tutor
 simulado** (`web/lib/tutorSimulado.ts`); conectarlo al backend es la fase 2. Faltan los

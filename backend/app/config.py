@@ -57,6 +57,7 @@ class Configuracion:
     mistral_modelo: str = "mistral-small-latest"
     tiempo_maximo_ia: float = 30.0
     gemini_razonamiento: str = "low"
+    orden_proveedores: tuple[str, ...] = ("groq", "gemini", "mistral")
     database_url: str = "sqlite:///./maestro.db"
     limite_mensajes_sesion: int = 40
     limite_mensajes_dia: int = 150
@@ -77,6 +78,11 @@ def obtener_configuracion() -> Configuracion:
         mistral_modelo=_texto("MISTRAL_MODELO", Configuracion.mistral_modelo),
         tiempo_maximo_ia=_decimal("TIEMPO_MAXIMO_IA", Configuracion.tiempo_maximo_ia),
         gemini_razonamiento=_texto("GEMINI_RAZONAMIENTO", Configuracion.gemini_razonamiento).lower(),
+        orden_proveedores=tuple(
+            nombre.strip().lower()
+            for nombre in _texto("ORDEN_PROVEEDORES", ",".join(Configuracion.orden_proveedores)).split(",")
+            if nombre.strip()
+        ),
         database_url=os.environ.get("DATABASE_URL", "sqlite:///./maestro.db"),
         limite_mensajes_sesion=_entero("LIMITE_MENSAJES_SESION", 40),
         limite_mensajes_dia=_entero("LIMITE_MENSAJES_DIA", 150),

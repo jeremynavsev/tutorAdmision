@@ -39,7 +39,7 @@ otros archivos.
 
 ## Fase 1 — Backend con IA real (1–2 semanas)
 
-- [x] `servicios/modelos_ia.py`: cadena Gemini → Groq → Mistral con el cliente `openai`,
+- [x] `servicios/modelos_ia.py`: cadena Groq → Gemini → Mistral con el cliente `openai`,
       con tiempo máximo y paso automático al siguiente proveedor si uno falla.
 - [x] `servicios/agente.py`: instrucciones del sistema (voseo, guiar con preguntas, pistas
       que se adaptan al estudiante, nunca dar la respuesta) y respuesta en **JSON estructurado** con el

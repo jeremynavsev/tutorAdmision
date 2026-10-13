@@ -49,9 +49,40 @@ def fabrica(resultados: dict, llamadas: dict):
 MENSAJES = [{"role": "user", "content": "hola"}]
 
 
-def test_solo_entran_los_proveedores_con_llave_y_en_orden():
-    config = Configuracion(gemini_api_key="g", groq_api_key="", mistral_api_key="m")
-    assert [p.nombre for p in proveedores_disponibles(config)] == ["gemini", "mistral"]
+TODAS = dict(gemini_api_key="g", groq_api_key="q", mistral_api_key="m")
+
+
+def nombres(config: Configuracion) -> list[str]:
+    return [p.nombre for p in proveedores_disponibles(config)]
+
+
+def test_por_defecto_groq_va_primero():
+    assert nombres(Configuracion(**TODAS)) == ["groq", "gemini", "mistral"]
+
+
+def test_solo_entran_los_proveedores_con_llave():
+    assert nombres(Configuracion(gemini_api_key="g", groq_api_key="", mistral_api_key="m")) == ["gemini", "mistral"]
+
+
+def test_el_orden_se_puede_cambiar():
+    config = Configuracion(**TODAS, orden_proveedores=("mistral", "gemini", "groq"))
+    assert nombres(config) == ["mistral", "gemini", "groq"]
+
+
+def test_los_que_no_se_nombran_van_al_final_y_los_desconocidos_se_ignoran():
+    config = Configuracion(**TODAS, orden_proveedores=("gemini", "deepseek"))
+    assert nombres(config) == ["gemini", "groq", "mistral"]
+
+
+def test_con_foto_la_cadena_por_defecto_llega_a_gemini():
+    con_foto = [{"role": "user", "content": [{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,AAAA"}}]}]
+    llamadas: dict = {}
+    r = completar(
+        con_foto,
+        proveedores=proveedores_disponibles(Configuracion(**TODAS)),
+        crear_cliente=fabrica({"groq": "{}", "gemini": '{"ok": 1}', "mistral": "{}"}, llamadas),
+    )
+    assert r.proveedor == "gemini" and "groq" not in llamadas
 
 
 def test_usa_el_modelo_configurado():
@@ -146,9 +177,8 @@ def test_pide_json_solo_cuando_se_le_indica():
 
 
 def test_gemini_pide_poco_razonamiento_por_defecto():
-    gemini = proveedores_disponibles(Configuracion(gemini_api_key="g", groq_api_key="q"))
-    assert gemini[0].extras == {"reasoning_effort": "low"}
-    assert gemini[1].extras == {}
+    extras = {p.nombre: p.extras for p in proveedores_disponibles(Configuracion(gemini_api_key="g", groq_api_key="q"))}
+    assert extras == {"gemini": {"reasoning_effort": "low"}, "groq": {}}
 
 
 def test_el_razonamiento_se_puede_dejar_normal():

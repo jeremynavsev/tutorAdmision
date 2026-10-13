@@ -1,9 +1,14 @@
-"""Cadena de proveedores de IA: Gemini → Groq → Mistral.
+"""Cadena de proveedores de IA: Groq, Gemini y Mistral.
 
 Los tres ofrecen una API compatible con la de OpenAI, así que se usa el mismo
-cliente ``openai`` con otra URL base. Se prueban en orden y, si uno falla
+cliente ``openai`` con otra URL base. Se prueban en el orden de
+``ORDEN_PROVEEDORES`` (por defecto Groq → Gemini → Mistral) y, si uno falla
 (error, tiempo agotado, cuota llena, modelo retirado o respuesta vacía), se pasa
 al siguiente. Solo entran los proveedores que tienen llave en el ``.env``.
+
+Groq va primero porque es rápido y su límite gratuito aguanta; el plan gratuito
+de Gemini permite muy pocos pedidos por día, así que conviene guardarlo para las
+fotos, que Groq no lee.
 
 Si el mensaje trae una foto, se saltan los proveedores cuyo modelo no lee
 imágenes.
@@ -61,7 +66,7 @@ class SinProveedores(Exception):
 
 
 def proveedores_disponibles(config: Configuracion | None = None) -> list[Proveedor]:
-    """Lista los proveedores con llave configurada, en orden de prioridad."""
+    """Lista los proveedores con llave configurada, en el orden de ``ORDEN_PROVEEDORES``."""
     c = config or obtener_configuracion()
     # Con poco razonamiento Gemini responde mucho más rápido; "normal" deja el valor del modelo.
     razonamiento = {} if c.gemini_razonamiento in ("", "normal") else {"reasoning_effort": c.gemini_razonamiento}
@@ -89,6 +94,10 @@ def proveedores_disponibles(config: Configuracion | None = None) -> list[Proveed
             acepta_imagenes=True,
         ),
     ]
+    # Primero los que nombra la configuración, en ese orden; después los que falten,
+    # para que un nombre mal escrito no deje a un proveedor fuera.
+    posicion = {nombre: i for i, nombre in enumerate(c.orden_proveedores)}
+    candidatos.sort(key=lambda p: posicion.get(p.nombre, len(posicion)))
     return [p for p in candidatos if p.llave]
 
 
