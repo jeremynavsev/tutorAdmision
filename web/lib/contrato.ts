@@ -40,6 +40,8 @@ export type RespuestaTutor = {
   texto: string;
   pista?: NumeroPista;
   anotaciones: Anotacion[];
+  /** Mensajes que le quedan hoy al estudiante, si el tutor lo sabe. */
+  restantes?: number;
 };
 
 export type Tutor = (entrada: EntradaTutor, contexto: Contexto) => Promise<RespuestaTutor>;

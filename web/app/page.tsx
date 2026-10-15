@@ -10,7 +10,9 @@ import Pizarra from "@/components/Pizarra";
 import Redactor from "@/components/Redactor";
 import Toasts, { type Toast } from "@/components/Toasts";
 import { cargarChats, guardarChats, nuevoId, tituloDesde, type Chat, type Mensaje } from "@/lib/chats";
+import { ErrorDeApi } from "@/lib/api";
 import { ErrorDeFoto, prepararFoto } from "@/lib/fotos";
+import { obtenerSesion } from "@/lib/sesion";
 import { guardarBandera, leerBandera } from "@/lib/tema";
 import { MAX_HISTORIAL, type Contexto, type EntradaTutor, type RespuestaTutor, type Tutor } from "@/lib/contrato";
 import { tutorRemoto } from "@/lib/tutorRemoto";
@@ -18,7 +20,11 @@ import { tutorSimulado } from "@/lib/tutorSimulado";
 
 // El tutor real habla con el backend. Con NEXT_PUBLIC_TUTOR=simulado se usa el de
 // mentiras, que sirve para mostrar la interfaz sin backend ni cuota de IA.
-const tutor: Tutor = process.env.NEXT_PUBLIC_TUTOR === "simulado" ? tutorSimulado : tutorRemoto;
+const usaTutorReal = process.env.NEXT_PUBLIC_TUTOR !== "simulado";
+const tutor: Tutor = usaTutorReal ? tutorRemoto : tutorSimulado;
+/** Desde cuántos mensajes restantes se le avisa al estudiante. */
+const AVISAR_DESDE = 5;
+const MENSAJE_ULTIMO = "Este fue tu último mensaje de hoy. Mañana podés seguir practicando.";
 const MENSAJE_DE_ERROR = "Algo salió mal. Probá de nuevo en un ratito.";
 
 const CLAVE_AVISO = "maestro-aviso-aceptado";
@@ -57,6 +63,8 @@ export default function Inicio() {
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [aviso, setAviso] = useState({ abierto: false, obligatorio: false });
   const [toasts, setToasts] = useState<Toast[]>([]);
+  // Si ya no quedan mensajes hoy: el texto que se muestra en lugar del campo para escribir.
+  const [sinCupo, setSinCupo] = useState<string | null>(null);
   // El último mensaje al que el tutor no pudo responder (para ofrecer "Reintentar").
   const [sinRespuesta, setSinRespuesta] = useState<{ chatId: string; mensajeId: string; entrada: EntradaTutor } | null>(null);
 
@@ -129,7 +137,12 @@ export default function Inicio() {
       respuesta = await tutor(entrada, ctx);
     } catch (error) {
       avisar(error instanceof Error && error.message ? error.message : MENSAJE_DE_ERROR, "error");
-      setSinRespuesta({ chatId, mensajeId, entrada });
+      if (error instanceof ErrorDeApi && error.estado === 429) {
+        // Llegó al límite de hoy: reintentar no serviría, así que no se ofrece.
+        setSinCupo(error.message);
+      } else {
+        setSinRespuesta({ chatId, mensajeId, entrada });
+      }
       return;
     } finally {
       setPensandoEn(null);
@@ -155,6 +168,16 @@ export default function Inicio() {
         anotaciones: [...c.anotaciones, ...nuevas.map((a, i) => ({ ...a, n: base + i + 1 }))],
       };
     });
+
+    // Cuántos mensajes le quedan hoy: se avisa solo cuando ya son pocos.
+    if (respuesta.restantes !== undefined) {
+      if (respuesta.restantes <= 0) {
+        setSinCupo(MENSAJE_ULTIMO);
+        avisar(MENSAJE_ULTIMO);
+      } else if (respuesta.restantes <= AVISAR_DESDE) {
+        avisar(respuesta.restantes === 1 ? "Te queda 1 mensaje por hoy." : `Te quedan ${respuesta.restantes} mensajes por hoy.`);
+      }
+    }
 
     // Si el tutor escribió en la pizarra: se abre sola en pantalla ancha; en celular se avisa con un punto.
     if (respuesta.anotaciones.length > 0) {
@@ -232,6 +255,9 @@ export default function Inicio() {
     if (primeraVez) {
       guardarBandera(CLAVE_AVISO);
       avisar("¡Listo! Mandame el problema cuando querás.");
+      // La sesión anónima se crea apenas se acepta el aviso. Si falla (sin conexión),
+      // se vuelve a intentar con el primer mensaje.
+      if (usaTutorReal) obtenerSesion().catch(() => undefined);
     }
   }
 
@@ -295,9 +321,12 @@ export default function Inicio() {
             />
           )}
           <Redactor
-            ocupado={pensando}
+            ocupado={pensando || sinCupo !== null}
+            bloqueado={sinCupo !== null}
             conAtajos={contexto.enunciado !== null}
-            placeholder={vacio ? "Escribí o pegá el problema que querés resolver…" : "Escribí cómo lo estás pensando…"}
+            placeholder={
+              sinCupo ?? (vacio ? "Escribí o pegá el problema que querés resolver…" : "Escribí cómo lo estás pensando…")
+            }
             onEnviar={enviarTexto}
             onFoto={enviarFoto}
           />

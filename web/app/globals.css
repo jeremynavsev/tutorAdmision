@@ -1163,6 +1163,10 @@ button {
   color: var(--carbon-suave);
 }
 
+.campo:disabled {
+  cursor: not-allowed;
+}
+
 .campo:focus {
   outline: none;
 }

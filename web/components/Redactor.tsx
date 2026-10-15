@@ -12,6 +12,8 @@ const ATAJOS = [
 
 type Props = {
   ocupado: boolean;
+  /** Sin mensajes por hoy: no se puede ni escribir. */
+  bloqueado?: boolean;
   /** Los atajos solo tienen sentido cuando ya hay un problema en la pizarra. */
   conAtajos: boolean;
   placeholder: string;
@@ -20,7 +22,7 @@ type Props = {
 };
 
 /** Atajos, botón de cámara, campo de texto y botón "Enviar". */
-export default function Redactor({ ocupado, conAtajos, placeholder, onEnviar, onFoto }: Props) {
+export default function Redactor({ ocupado, bloqueado = false, conAtajos, placeholder, onEnviar, onFoto }: Props) {
   const [texto, setTexto] = useState("");
   const campo = useRef<HTMLTextAreaElement>(null);
   const idCampo = useId();
@@ -78,6 +80,7 @@ export default function Redactor({ ocupado, conAtajos, placeholder, onEnviar, on
           id={idCampo}
           className="campo"
           rows={1}
+          disabled={bloqueado}
           maxLength={MAX_MENSAJE}
           value={texto}
           placeholder={placeholder}
@@ -106,7 +109,7 @@ export default function Redactor({ ocupado, conAtajos, placeholder, onEnviar, on
           </label>
           <span className="redactor-nota">Enter para enviar · Shift+Enter para otra línea</span>
           <button type="submit" className="boton boton-principal brillo" disabled={ocupado || !texto.trim()}>
-            {ocupado ? <span className="spinner" aria-hidden="true" /> : <IconoEnviar />}
+            {ocupado && !bloqueado ? <span className="spinner" aria-hidden="true" /> : <IconoEnviar />}
             Enviar
           </button>
         </div>

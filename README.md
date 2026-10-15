@@ -50,6 +50,7 @@ prototipo/
 │       ├── tutorRemoto.ts   Tutor real: llama al backend
 │       ├── tutorSimulado.ts Tutor de mentiras, para mostrar la interfaz sin backend
 │       ├── fotos.ts         Reduce y endereza la foto antes de subirla
+│       ├── sesion.ts        Sesión anónima del estudiante (para el límite diario)
 │       ├── chats.ts         Historial de chats (por ahora en localStorage)
 │       ├── trazos.ts        Círculos y trazos "a mano" de la pizarra
 │       └── tema.ts          Modo claro/oscuro
