@@ -35,6 +35,7 @@ prototipo/
 │   │   └── datos/db.py      SQLAlchemy: SQLite local, PostgreSQL (Neon) en producción
 │   ├── ejercicios/banco.json  Banco de ejercicios de ejemplo
 │   ├── tests/               Pruebas con pytest
+│   ├── evaluacion/          Conversaciones de prueba para medir la calidad del tutor
 │   ├── requirements.txt     Dependencias de producción (versiones fijas)
 │   ├── requirements-dev.txt Más las de pruebas (pytest, httpx)
 │   ├── .env.example
@@ -124,6 +125,17 @@ cd /home/jeremy/semestreII2026/Examen/prototipo/backend
 source .venv/bin/activate
 pytest
 ```
+
+Evaluación del tutor con IA real (gasta cuota: cada turno es una consulta):
+
+```bash
+cd /home/jeremy/Documents/tutorAdmision/backend
+.venv/bin/python -m evaluacion.evaluar
+```
+
+Corre las conversaciones de `evaluacion/casos.json` y revisa cada respuesta: si confirma
+un acierto, si señala un error, si vuelve a preguntar algo ya respondido, si revela la
+respuesta y si usa voseo. Deja un reporte en `evaluacion/resultados/`.
 
 Con Podman:
 

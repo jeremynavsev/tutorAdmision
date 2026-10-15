@@ -61,7 +61,11 @@ otros archivos.
 - **Mistral**: su API ya no es gratuita (pago por uso o plan Pro). Sigue soportado en el
   código por si se consigue una llave.
 - **Los planes gratuitos no alcanzan para el piloto** con estudiantes: hay que
-  presupuestar un plan de pago antes de la fase 6.
+  presupuestar un plan de pago antes de la fase 6. Groq gratuito da 200 000 tokens por
+  día y cada mensaje del tutor gasta unos 2700 (las instrucciones solas son unos 2000):
+  alcanza para unos 70 mensajes al día entre todos los estudiantes.
+- **Conviene achicar las instrucciones del tutor:** cada token se paga en cada mensaje
+  de cada estudiante. Hacerlo con la evaluación automática, para no perder calidad.
 - **Ollama** (modelos en un servidor propio) es gratis, sin cuotas y más privado, pero
   necesita un servidor con tarjeta de video. Es una opción si la universidad presta uno,
   o para servir un modelo con ajuste fino en la fase 5.
@@ -98,8 +102,11 @@ otros archivos.
 1. [ ] **Consulta del banco (RAG):** al recibir un problema, buscar los ejercicios más
        parecidos y pasarle al modelo, en privado, sus pasos y errores comunes.
 2. [ ] **Ejemplos en las instrucciones:** 2–3 conversaciones modelo de buena tutoría.
-3. [ ] **Evaluación automática:** 50–100 conversaciones de prueba que midan si filtró la
-       respuesta, si la pista es correcta, si respeta el nivel de pista y si usa voseo.
+3. [ ] **Evaluación automática** (empezada en la fase 3: `backend/evaluacion/`, con 10
+       conversaciones y revisiones por patrones; falta ampliarla y sumar un evaluador
+       con IA que califique la calidad de las pistas). Meta: 50–100 conversaciones de
+       prueba que midan si filtró la respuesta, si la pista es correcta, si respeta el
+       nivel de pista y si usa voseo.
        Correrla cada vez que cambien las instrucciones o el modelo.
 4. [ ] **Ajuste fino, solo si la evaluación lo justifica:** entrenar con *conversaciones de
        tutoría* generadas a partir del banco y revisadas por personas (LoRA sobre un
