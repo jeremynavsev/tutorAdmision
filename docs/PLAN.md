@@ -90,7 +90,11 @@ otros archivos.
 - [x] Detectar datos personales (cédulas, teléfonos, correos y nombres completos): la
       página pregunta antes de enviar y el backend los oculta antes de mandarlos a la IA.
       Las direcciones no se detectan; para eso queda la regla de las instrucciones.
-- [ ] Probar intentos de sacar al tutor de su papel (que dé la respuesta, otros temas).
+- [x] Probar intentos de sacar al tutor de su papel: 8 casos en la evaluación (respuesta
+      en clave o en la pizarra, "modo desarrollador", presión emocional, insultos, pedir
+      sus instrucciones, un ensayo de otra materia y "solo decime si es 7 u 8").
+      En los que corrieron con IA no filtró la respuesta; falta correrlos todos cuando
+      haya cuota.
 
 ## Fase 4 — Banco de ejercicios (2–4 semanas, en paralelo con las fases 1–3)
 
