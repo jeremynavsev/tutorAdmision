@@ -31,7 +31,7 @@ prototipo/
 │   │   ├── esquemas.py      Modelos Pydantic de entrada y salida
 │   │   ├── rutas/           salud, ejercicios, sesiones, chat
 │   │   ├── servicios/       tutor (une todo), agente, modelos_ia, verificador,
-│   │   │                    imagenes, limites
+│   │   │                    imagenes, limites, privacidad
 │   │   └── datos/db.py      SQLAlchemy: SQLite local, PostgreSQL (Neon) en producción
 │   ├── ejercicios/banco.json  Banco de ejercicios de ejemplo
 │   ├── tests/               Pruebas con pytest
@@ -51,6 +51,7 @@ prototipo/
 │       ├── tutorSimulado.ts Tutor de mentiras, para mostrar la interfaz sin backend
 │       ├── fotos.ts         Reduce y endereza la foto antes de subirla
 │       ├── sesion.ts        Sesión anónima del estudiante (para el límite diario)
+│       ├── privacidad.ts    Detecta datos personales antes de enviar (copia de las reglas del backend)
 │       ├── chats.ts         Historial de chats (por ahora en localStorage)
 │       ├── trazos.ts        Círculos y trazos "a mano" de la pizarra
 │       └── tema.ts          Modo claro/oscuro

@@ -87,7 +87,9 @@ otros archivos.
       una huella diaria, nunca la IP.
 - [x] La página crea la sesión al aceptar el aviso (y otra sola si se venció), avisa
       cuando quedan 5 mensajes o menos y bloquea el campo al llegar al límite.
-- [ ] Detectar datos personales (cédulas, teléfonos) y pedir que no se compartan.
+- [x] Detectar datos personales (cédulas, teléfonos, correos y nombres completos): la
+      página pregunta antes de enviar y el backend los oculta antes de mandarlos a la IA.
+      Las direcciones no se detectan; para eso queda la regla de las instrucciones.
 - [ ] Probar intentos de sacar al tutor de su papel (que dé la respuesta, otros temas).
 
 ## Fase 4 — Banco de ejercicios (2–4 semanas, en paralelo con las fases 1–3)

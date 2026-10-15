@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { MAX_MENSAJE } from "@/lib/contrato";
+import { NOMBRES_DE_DATOS, encontrarDatos, ocultarDatos, type TipoDato } from "@/lib/privacidad";
 import { IconoBrujula, IconoCamara, IconoCandado, IconoEnviar, IconoLapiz } from "./Iconos";
 
 const ATAJOS = [
@@ -24,6 +25,8 @@ type Props = {
 /** Atajos, botón de cámara, campo de texto y botón "Enviar". */
 export default function Redactor({ ocupado, bloqueado = false, conAtajos, placeholder, onEnviar, onFoto }: Props) {
   const [texto, setTexto] = useState("");
+  // Datos personales que se encontraron al intentar enviar (para preguntar antes).
+  const [datosEncontrados, setDatosEncontrados] = useState<TipoDato[] | null>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
   const idCampo = useId();
   const idFoto = useId();
@@ -40,13 +43,29 @@ export default function Redactor({ ocupado, bloqueado = false, conAtajos, placeh
     el.style.height = `${el.scrollHeight}px`;
   }
 
+  function mandar(contenido: string) {
+    onEnviar(contenido);
+    setTexto("");
+    setDatosEncontrados(null);
+    requestAnimationFrame(ajustarAltura);
+  }
+
   function enviar(evento?: FormEvent) {
     evento?.preventDefault();
     const limpio = texto.trim();
     if (!limpio || ocupado) return;
-    onEnviar(limpio);
-    setTexto("");
-    requestAnimationFrame(ajustarAltura);
+    // Si el mensaje trae un dato personal, primero se pregunta.
+    const datos = [...new Set(encontrarDatos(limpio).map((h) => h.tipo))];
+    if (datos.length > 0) {
+      setDatosEncontrados(datos);
+      return;
+    }
+    mandar(limpio);
+  }
+
+  function editar() {
+    setDatosEncontrados(null);
+    campo.current?.focus();
   }
 
   // Enter envía; Shift+Enter hace un salto de línea.
@@ -71,6 +90,22 @@ export default function Redactor({ ocupado, bloqueado = false, conAtajos, placeh
           ))}
         </ul>
       )}
+      {datosEncontrados && (
+        <div className="aviso-datos" role="alert">
+          <p>
+            Parece que tu mensaje tiene {listar(datosEncontrados.map((t) => NOMBRES_DE_DATOS[t]))}. Para practicar no
+            hace falta compartir datos personales.
+          </p>
+          <div className="aviso-datos-acciones">
+            <button type="button" className="boton boton-principal" onClick={() => mandar(ocultarDatos(texto.trim()))}>
+              Quitarlo y enviar
+            </button>
+            <button type="button" className="boton-reintentar" onClick={editar}>
+              Editar
+            </button>
+          </div>
+        </div>
+      )}
       <div className="redactor-caja">
         <label htmlFor={idCampo} className="solo-lectores">
           Tu mensaje para MAEstro
@@ -86,6 +121,7 @@ export default function Redactor({ ocupado, bloqueado = false, conAtajos, placeh
           placeholder={placeholder}
           onChange={(e) => {
             setTexto(e.target.value);
+            setDatosEncontrados(null);
             ajustarAltura();
           }}
           onKeyDown={alPresionar}
@@ -116,4 +152,9 @@ export default function Redactor({ ocupado, bloqueado = false, conAtajos, placeh
       </div>
     </form>
   );
+}
+
+/** "a", "a y b", "a, b y c". */
+function listar(cosas: string[]): string {
+  return cosas.length <= 1 ? (cosas[0] ?? "") : `${cosas.slice(0, -1).join(", ")} y ${cosas[cosas.length - 1]}`;
 }

@@ -1128,6 +1128,33 @@ button {
   cursor: not-allowed;
 }
 
+/* Aviso antes de enviar un mensaje con datos personales. */
+.aviso-datos {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--musgo);
+  border-left: 3px solid var(--cafetal);
+  border-radius: var(--radio-campo);
+  background: var(--papel);
+  color: var(--carbon);
+  font-size: var(--texto-pequeno);
+  box-shadow: var(--sombra);
+  animation: subir 250ms var(--curva) both;
+}
+
+.aviso-datos-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.aviso-datos .boton {
+  min-height: 36px;
+  padding: 0.25rem 0.875rem;
+  font-size: var(--texto-pequeno);
+}
+
 /* La caja del redactor: campo arriba, acciones abajo. */
 .redactor-caja {
   display: grid;
