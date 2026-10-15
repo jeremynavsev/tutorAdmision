@@ -24,3 +24,6 @@ web/next-env.d.ts
 # Entorno de desarrollo (direnv + Nix)
 .direnv/
 .dev/
+
+# Reportes de la evaluación del tutor (se generan al correrla)
+backend/evaluacion/resultados/
