@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Mensaje } from "@/lib/chats";
 import { prefiereMenosMovimiento } from "@/lib/tema";
-import { CIRCULITO_PISTA } from "@/lib/trazos";
 import { IconoAlerta, IconoReintentar } from "./Iconos";
 
 type Props = {
@@ -37,7 +36,7 @@ export default function Conversacion({ mensajes, pensando, animar, fotos, sinRes
           <li key={m.id} className="mensaje mensaje-tutor">
             <p className="autor">
               MAEstro
-              {m.pista && <SelloPista numero={m.pista} animar={animar.has(m.id)} />}
+              {m.pista && <SelloPista animar={animar.has(m.id)} />}
             </p>
             <TextoTutor texto={m.texto} animar={animar.has(m.id)} onAvance={() => bajar(false)} />
           </li>
@@ -99,17 +98,15 @@ function FotoEnviada({ src, alCargar }: { src: string; alCargar: () => void }) {
   );
 }
 
-/** Número de pista en Caveat dentro de un circulito a mano, más la palabra "pista". */
-function SelloPista({ numero, animar }: { numero: number; animar: boolean }) {
+/** Etiqueta "pista" escrita con tiza y subrayada a mano. No muestra cuántas pistas van:
+ *  ese conteo solo lo usa el tutor para dosificar la ayuda. */
+function SelloPista({ animar }: { animar: boolean }) {
   return (
     <span className="sello-pista">
-      <span className="numero-pista">
-        <svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d={CIRCULITO_PISTA} pathLength={1} className={animar ? "trazo-animado" : undefined} />
-        </svg>
-        {numero}
-      </span>
       pista
+      <svg viewBox="0 0 40 6" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M1 4 C 10 2, 22 5.5, 39 2.5" pathLength={1} className={animar ? "trazo-animado" : undefined} />
+      </svg>
     </span>
   );
 }

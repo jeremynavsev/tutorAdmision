@@ -848,35 +848,27 @@ button {
 }
 
 .sello-pista {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-family: var(--fuente-texto), system-ui, sans-serif;
+  position: relative;
+  display: inline-block;
+  padding: 0 0.125rem 0.125rem;
+  font-family: var(--fuente-tiza), cursive;
+  font-size: 1.2rem;
   font-weight: 700;
+  line-height: 1;
   color: var(--guaria-sobre-fondo);
 }
 
-.numero-pista {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  font-family: var(--fuente-tiza), cursive;
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.numero-pista svg {
+/* Subrayado a mano bajo la palabra "pista". */
+.sello-pista svg {
   position: absolute;
-  inset: -2px;
-  width: calc(100% + 4px);
-  height: calc(100% + 4px);
+  left: 0;
+  bottom: -0.2rem;
+  width: 100%;
+  height: 0.4rem;
   overflow: visible;
 }
 
-.numero-pista path {
+.sello-pista path {
   fill: none;
   stroke: var(--guaria-sobre-fondo);
   stroke-width: 1.8;
