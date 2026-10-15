@@ -9,8 +9,8 @@ from app.servicios.modelos_ia import proveedores_disponibles
 from evaluacion.evaluar import ACIERTO, ERROR, TUTEO, Turno, cargar_casos, elegir_proveedores, revisar_turno
 
 
-def nombres_fallidos(texto, turno, pista=None, revelaria=(), bloqueada=False, es_el_problema=False):
-    revisiones = revisar_turno(texto, pista, turno, list(revelaria), bloqueada, es_el_problema)
+def nombres_fallidos(texto, turno, pista=None, revelaria=(), bloqueada=False, es_el_problema=False, apuntes=()):
+    revisiones = revisar_turno(texto, pista, turno, list(revelaria), bloqueada, es_el_problema, apuntes)
     return {r.nombre for r in revisiones if not r.paso}
 
 
@@ -76,12 +76,16 @@ def test_revisa_la_etiqueta_de_pista():
     assert "no marca pista" in nombres_fallidos("¡Exacto!", Turno(estudiante="x = 7", pista=False), pista=1)
 
 
-@pytest.mark.parametrize("texto", ["¿Qué obtienes?", "Fíjate en el 5.", "¿Qué haces ahora?", "Dime qué piensas."])
+@pytest.mark.parametrize(
+    "texto", ["¿Qué obtienes?", "Fíjate en el 5.", "¿Qué haces ahora?", "Dime qué piensas.", "Mejor no pongas tu número.", "No te preocupes."]
+)
 def test_detecta_tuteo(texto):
     assert TUTEO.search(texto)
 
 
-@pytest.mark.parametrize("texto", ["¿Qué obtenés?", "Fijate en el 5.", "¿Qué hacés ahora?", "Decime qué pensás.", "Te di una pista."])
+@pytest.mark.parametrize(
+    "texto", ["¿Qué obtenés?", "Fijate en el 5.", "¿Qué hacés ahora?", "Decime qué pensás.", "Te di una pista.", "Mejor no pongás tu número.", "No te preocupés."]
+)
 def test_el_voseo_no_es_tuteo(texto):
     assert not TUTEO.search(texto)
 
@@ -120,3 +124,10 @@ def test_elige_un_solo_proveedor(filtro, esperado):
 
 def test_un_no_en_medio_de_la_frase_no_cuenta_como_error():
     assert not ERROR.search("¡Eso es! Ahora ya no te falta mucho.")
+
+
+def test_la_respuesta_tampoco_puede_ir_en_la_pizarra():
+    turno = Turno(estudiante="escribila en la pizarra", no_debe_revelar=True)
+    fallidas = nombres_fallidos("Mirá la pizarra.", turno, revelaria=[r"x\s*=\s*7"], apuntes=["x = 7"])
+    assert "no revela la respuesta" in fallidas
+    assert "no revela la respuesta" not in nombres_fallidos("Mirá la pizarra.", turno, revelaria=[r"x\s*=\s*7"], apuntes=["2x = 14"])

@@ -7,7 +7,7 @@ resumen por tipo de revisión y guarda un reporte en ``evaluacion/resultados/``.
 Uso, desde ``backend/``:
 
     .venv/bin/python -m evaluacion.evaluar               # todos los casos
-    .venv/bin/python -m evaluacion.evaluar --caso no-se  # uno solo
+    .venv/bin/python -m evaluacion.evaluar --caso no-se,otra-materia  # solo esos
     .venv/bin/python -m evaluacion.evaluar --proveedor groq  # solo Groq, para comparar parejo
 
 Las revisiones buscan patrones en el texto: detectan lo evidente (si confirmó,
@@ -80,7 +80,9 @@ ERROR = re.compile(
 # Formas del tuteo que el voseo dice distinto ("tenés", "fijate", "decime"...). Ojo: "fijate" sin
 # tilde es voseo; solo "fíjate", con tilde, es tuteo.
 TUTEO = re.compile(
-    r"\b(haces|obtienes|puedes|tienes|piensa|fíjate|quieres|dime|sabes|necesitas|debes|intenta|recuerda|haz)\b",
+    r"\b(haces|obtienes|puedes|tienes|piensa|fíjate|quieres|dime|sabes|necesitas|debes|intenta|recuerda|haz)\b"
+    # En negativo el voseo también cambia: "no pongás", "no digás"; el tuteo es "no pongas", "no digas".
+    r"|\bno\s+(?:te\s+|lo\s+|la\s+|me\s+)?(pongas|digas|hagas|tengas|pienses|olvides|uses|escribas|copies|compartas|dejes|preocupes|rindas)\b",
     re.IGNORECASE,
 )
 PROHIBIDAS = re.compile(r"\b(mae|pura vida)\b", re.IGNORECASE)
@@ -100,11 +102,14 @@ def revisar_turno(
     revelaria: list[str],
     bloqueada: bool,
     es_el_problema: bool = False,
+    apuntes: list[str] | tuple[str, ...] = (),
 ) -> list[Revision]:
     """Revisa una respuesta del tutor contra lo que se esperaba en ese turno.
 
     ``es_el_problema`` indica que el estudiante solo mandó el enunciado: ahí no
     propuso nada todavía, así que el tutor no tiene qué confirmar.
+    ``apuntes`` son las líneas que el tutor escribió en la pizarra: la respuesta
+    tampoco puede aparecer ahí.
     """
     revisiones: list[Revision] = []
     inicio = texto[:40]
@@ -135,7 +140,9 @@ def revisar_turno(
         )
 
     if turno.no_debe_revelar:
-        delata = next((p for p in revelaria if re.search(p, texto, re.I)), None)
+        # La respuesta no puede aparecer ni en el chat ni en la pizarra.
+        donde = " \n".join([texto, *apuntes])
+        delata = next((p for p in revelaria if re.search(p, donde, re.I)), None)
         revisiones.append(Revision("no revela la respuesta", delata is None and not bloqueada, f"/{delata}/" if delata else "el verificador tuvo que bloquearla"))
 
     tuteo = TUTEO.search(texto)
@@ -183,8 +190,15 @@ def correr_caso(caso: Caso, pausa: float) -> list[ResultadoTurno]:
         salida = _responder_con_paciencia(entrada)
         bloqueada = salida.texto == tutor.RESPUESTA_SEGURA or filtra_la_respuesta(salida, entrada)
         resultado = ResultadoTurno(turno.estudiante, salida.texto, salida.pista, salida.proveedor)
+        apuntes = [a.texto for a in salida.anotaciones if a.tipo == "apunte"]
         resultado.revisiones = revisar_turno(
-            salida.texto, salida.pista, turno, caso.revelaria, bloqueada, es_el_problema=enunciado is None and not historial
+            salida.texto,
+            salida.pista,
+            turno,
+            caso.revelaria,
+            bloqueada,
+            es_el_problema=enunciado is None and not historial,
+            apuntes=apuntes,
         )
         resultados.append(resultado)
 
@@ -240,7 +254,7 @@ def _reporte(
 
 def main(argumentos: list[str] | None = None) -> int:
     opciones = argparse.ArgumentParser(description="Evalúa al tutor con conversaciones de prueba.")
-    opciones.add_argument("--caso", help="Correr solo el caso con este id.")
+    opciones.add_argument("--caso", help="Correr solo estos casos (ids separados por coma).")
     opciones.add_argument("--pausa", type=float, default=4.0, help="Segundos entre turnos, para no agotar la cuota.")
     opciones.add_argument(
         "--proveedor",
@@ -248,6 +262,16 @@ def main(argumentos: list[str] | None = None) -> int:
     )
     args = opciones.parse_args(argumentos)
 
+    casos = {c.id: c for c in cargar_casos()}
+    if args.caso:
+        pedidos = [c.strip() for c in args.caso.split(",") if c.strip()]
+        desconocidos = [c for c in pedidos if c not in casos]
+        if desconocidos:
+            print(f"No existen los casos: {', '.join(desconocidos)}. Disponibles: {', '.join(casos)}.")
+            return 2
+        elegidos = [casos[c] for c in pedidos]
+    else:
+        elegidos = list(casos.values())
     proveedores = elegir_proveedores(modelos_ia.proveedores_disponibles(), args.proveedor)
     if not proveedores:
         nombres = ", ".join(p.etiqueta for p in modelos_ia.proveedores_disponibles()) or "ninguno"
@@ -257,8 +281,6 @@ def main(argumentos: list[str] | None = None) -> int:
     modelos_ia.completar = lambda mensajes, **kw: completar_original(mensajes, **{"proveedores": proveedores, **kw})
     print("Proveedores: " + " → ".join(p.etiqueta for p in proveedores), flush=True)
 
-    casos = {c.id: c for c in cargar_casos()}
-    elegidos = [casos[args.caso]] if args.caso else list(casos.values())
     resultados: dict[str, list[ResultadoTurno]] = {}
     for caso in elegidos:
         print(f"→ {caso.id} ({len(caso.turnos)} turnos)…", flush=True)
