@@ -16,6 +16,14 @@ def base_de_datos_en_memoria():
     yield
 
 
+@pytest.fixture
+def sesion() -> str:
+    """Una sesión anónima ya creada, como la que tiene el estudiante después de aceptar el aviso."""
+    with db.sesion_bd() as bd:
+        bd.add(db.Sesion(id="sesion-de-prueba"))
+    return "sesion-de-prueba"
+
+
 @pytest.fixture(autouse=True)
 def sin_proveedores_reales(monkeypatch):
     """Ninguna prueba llama a un proveedor de IA de verdad: ni internet ni cuota."""

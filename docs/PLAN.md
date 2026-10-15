@@ -82,8 +82,10 @@ otros archivos.
 
 ## Fase 3 — Seguridad y límites (1 semana)
 
-- [ ] `servicios/limites.py`: mensajes por sesión y por día (SQLite local, Neon en
-      producción).
+- [x] `servicios/limites.py`: 40 mensajes por estudiante y 1000 por conexión al día, en
+      hora de Costa Rica. Se cuentan solo si el tutor respondió. De la conexión se guarda
+      una huella diaria, nunca la IP.
+- [ ] La página crea la sesión al aceptar el aviso y avisa cuando se llega al límite.
 - [ ] Detectar datos personales (cédulas, teléfonos) y pedir que no se compartan.
 - [ ] Probar intentos de sacar al tutor de su papel (que dé la respuesta, otros temas).
 

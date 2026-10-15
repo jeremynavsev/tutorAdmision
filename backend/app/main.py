@@ -35,6 +35,8 @@ app.add_middleware(
     allow_origins=config.origenes_permitidos,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
+    # El frontend lee cuántos mensajes le quedan al estudiante hoy.
+    expose_headers=["X-Mensajes-Restantes"],
 )
 
 app.include_router(salud.router)
