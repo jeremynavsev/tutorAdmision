@@ -18,27 +18,41 @@ class Solucion(BaseModel):
     valor: str
 
 
-class Ejercicio(BaseModel):
-    """Ejercicio del banco tal como se guarda en ``ejercicios/banco.json``."""
+Area = Literal["Razonamiento matemático", "Razonamiento verbal"]
+Universidad = Literal["UCR", "UNA", "TEC"]
+Dificultad = Literal["baja", "media", "alta"]
 
-    id: str
-    tema: str
-    area: str
-    enunciado: str
+
+class Ejercicio(BaseModel):
+    """Ejercicio del banco. El banco real es privado (ver ``app/datos/banco.py``)."""
+
+    id: str = Field(min_length=1)
+    tema: str = Field(min_length=1)
+    area: Area
+    universidades: list[Universidad] = []
+    """Exámenes en los que aparece este tipo de ejercicio. Vacía si todavía no se sabe."""
+    dificultad: Dificultad | None = None
+    enunciado: str = Field(min_length=1)
     opciones: list[str]
+    """Las opciones en orden: la primera es la A, la segunda la B, etc."""
     solucion: Solucion
     pasos: list[str]
     errores_comunes: list[str]
+    fuente: str | None = None
+    """De dónde salió el ejercicio (documento e ítem), para poder revisarlo."""
+    comprobacion: str | None = None
+    """Cálculo aparte que da la respuesta, para verificar la clave con SymPy (ver ``app/datos/revision.py``)."""
+    revisado: bool = False
+    """Si una persona ya revisó el ejercicio completo: enunciado, clave, pasos y errores comunes."""
 
-
-class EjercicioPublico(BaseModel):
-    """Ejercicio sin solución ni pasos: lo que ve el estudiante."""
-
-    id: str
-    tema: str
-    area: str
-    enunciado: str
-    opciones: list[str]
+    @model_validator(mode="after")
+    def _la_clave_existe(self) -> "Ejercicio":
+        if self.solucion.tipo == "opcion":
+            letras = "ABCDEFGH"[: len(self.opciones)]
+            # Una sola letra: el texto vacío "está contenido" en cualquier texto y pasaría.
+            if not letras or len(self.solucion.valor) != 1 or self.solucion.valor not in letras:
+                raise ValueError(f"La clave '{self.solucion.valor}' no es una de las opciones ({', '.join(letras) or 'no hay opciones'}).")
+        return self
 
 
 class SesionEntrada(BaseModel):

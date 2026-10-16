@@ -72,7 +72,7 @@ def test_los_ejercicios_parecidos_van_solo_en_las_instrucciones():
     parecido = Ejercicio(
         id="x",
         tema="Porcentajes",
-        area="Matemática",
+        area="Razonamiento matemático",
         enunciado="Un libro sube de 100 a 120. ¿Cuánto aumentó?",
         opciones=[],
         solucion={"tipo": "numero", "valor": "20"},

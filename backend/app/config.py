@@ -40,6 +40,15 @@ def _decimal(nombre: str, por_defecto: float) -> float:
         return por_defecto
 
 
+def _ruta(nombre: str, por_defecto: Path) -> Path:
+    """Lee una ruta; si es relativa, se toma desde la carpeta backend/."""
+    crudo = os.environ.get(nombre, "").strip()
+    if not crudo:
+        return por_defecto
+    ruta = Path(crudo).expanduser()
+    return ruta if ruta.is_absolute() else RAIZ_BACKEND / ruta
+
+
 def _lista(nombre: str, por_defecto: tuple[str, ...]) -> tuple[str, ...]:
     """Lee una lista separada por comas. "ninguno" la deja vacía; sin valor, usa la de por defecto."""
     crudo = os.environ.get(nombre, "").strip()
@@ -77,6 +86,8 @@ class Configuracion:
     comparte la misma conexión; solo evita que alguien se salte el límite de su sesión."""
     secreto_huellas: str = ""
     """Clave para calcular la huella de cada conexión sin guardar su IP."""
+    banco_ejercicios: Path = RAIZ_BACKEND / "ejercicios" / "banco.json"
+    """Archivo del banco. El real es privado y git lo ignora; el de ejemplo sí está en el repo."""
     confiar_en_proxy: bool = False
     """En producción, detrás de un proxy, la IP real viene en el encabezado X-Forwarded-For."""
     origenes_permitidos: list[str] = field(default_factory=lambda: ["http://localhost:3100"])
@@ -103,5 +114,6 @@ def obtener_configuracion() -> Configuracion:
         limite_mensajes_conexion=_entero("LIMITE_MENSAJES_CONEXION", 1000),
         secreto_huellas=os.environ.get("SECRETO_HUELLAS", "").strip(),
         confiar_en_proxy=os.environ.get("CONFIAR_EN_PROXY", "").strip().lower() in ("1", "si", "sí", "true"),
+        banco_ejercicios=_ruta("BANCO_EJERCICIOS", Configuracion.banco_ejercicios),
         origenes_permitidos=[o.strip() for o in origenes.split(",") if o.strip()],
     )

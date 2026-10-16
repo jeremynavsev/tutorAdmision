@@ -2,10 +2,18 @@
   {
     "id": "mat-001",
     "tema": "Ecuaciones lineales",
-    "area": "Matemática",
+    "area": "Razonamiento matemático",
     "enunciado": "Si 3x + 5 = 20, ¿cuál es el valor de x?",
-    "opciones": ["3", "5", "15", "25/3"],
-    "solucion": { "tipo": "numero", "valor": "5" },
+    "opciones": [
+      "3",
+      "5",
+      "15",
+      "25/3"
+    ],
+    "solucion": {
+      "tipo": "numero",
+      "valor": "5"
+    },
     "pasos": [
       "Restá 5 a ambos lados de la ecuación: 3x = 15.",
       "Dividí ambos lados entre 3: x = 5."
@@ -13,15 +21,26 @@
     "errores_comunes": [
       "Sumar 5 en lugar de restarlo y obtener 3x = 25.",
       "Restar 3 en lugar de dividir entre 3 en el último paso."
-    ]
+    ],
+    "fuente": "Ejemplo inventado",
+    "dificultad": "baja",
+    "comprobacion": "(20 - 5)/3"
   },
   {
     "id": "raz-001",
     "tema": "Sucesiones",
-    "area": "Razonamiento",
+    "area": "Razonamiento matemático",
     "enunciado": "¿Qué número sigue en la sucesión 2, 6, 12, 20, 30, …?",
-    "opciones": ["36", "40", "42", "48"],
-    "solucion": { "tipo": "opcion", "valor": "42" },
+    "opciones": [
+      "36",
+      "40",
+      "42",
+      "48"
+    ],
+    "solucion": {
+      "tipo": "opcion",
+      "valor": "C"
+    },
     "pasos": [
       "Calculá la diferencia entre términos seguidos: 4, 6, 8, 10.",
       "Las diferencias aumentan de 2 en 2, así que la siguiente es 12.",
@@ -30,6 +49,9 @@
     "errores_comunes": [
       "Suponer una diferencia constante y responder 40.",
       "Sumar la última diferencia (10) otra vez y responder 40."
-    ]
+    ],
+    "fuente": "Ejemplo inventado",
+    "dificultad": "media",
+    "comprobacion": "30 + 10 + 2"
   }
 ]
