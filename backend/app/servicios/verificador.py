@@ -25,6 +25,7 @@ from fractions import Fraction
 import sympy
 from sympy.parsing.sympy_parser import convert_xor, implicit_multiplication_application, parse_expr, standard_transformations
 
+from app.datos.revision import valor_de_opcion
 from app.esquemas import AnotacionApunte, AnotacionEnunciado, ChatEntrada, ChatSalida, Solucion
 
 _LETRAS = "a-zñáéíóúü"
@@ -211,12 +212,41 @@ def resolver_enunciado(enunciado: str) -> list[Fraction]:
     return []
 
 
-def respuesta_esperada(enunciado: str | None, solucion: Solucion | None = None) -> Esperada | None:
-    """La respuesta final: la del banco si existe; si no, la que se pueda calcular."""
+_PALABRAS_DE_UNIDAD = 2
+"""Una opción con más palabras que esto es una frase, no un valor ("más de 40 bombillos defectuosos")."""
+
+
+def _valor_de_la_opcion(opcion: str) -> Fraction | None:
+    """El valor de una opción que es un número ("50 gapes", "3 000") o una cuenta ("65 + 16²").
+
+    Si es una frase con un número adentro, no cuenta: el tutor puede hablar de ese
+    número al analizar la opción sin estar dando la respuesta.
+    """
+    sin_numeros = re.sub(rf"{_NUMERO}|[()+\-−*/^·×÷²³.,  ]", " ", opcion)
+    if len(re.findall(rf"[{_LETRAS}]+", sin_numeros, re.IGNORECASE)) > _PALABRAS_DE_UNIDAD:
+        return None
+    valor = valor_de_opcion(opcion)
+    if valor is None or valor.free_symbols or not valor.is_rational:
+        return None
+    return Fraction(int(valor.p), int(valor.q))
+
+
+def respuesta_esperada(
+    enunciado: str | None, solucion: Solucion | None = None, opciones: list[str] | None = None
+) -> Esperada | None:
+    """La respuesta final: la del banco si existe; si no, la que se pueda calcular.
+
+    Con las opciones del ejercicio, una clave de selección también se reconoce por
+    su valor: si la C es "50 gapes", decir "50" es tan revelador como decir "la C".
+    """
     if solucion is not None:
         valor = solucion.valor.strip()
         if solucion.tipo == "opcion" and re.fullmatch(r"[A-Ea-e]", valor):
-            return Esperada(letra=valor.upper())
+            letra = valor.upper()
+            indice = ord(letra) - ord("A")
+            opcion = opciones[indice] if opciones and indice < len(opciones) else None
+            valor_opcion = _valor_de_la_opcion(opcion) if opcion else None
+            return Esperada(valores=[valor_opcion] if valor_opcion is not None else [], letra=letra)
         numeros = _numeros(valor)
         if numeros:
             return Esperada(valores=[numeros[0].valor], es_porcentaje=numeros[0].con_porcentaje)
@@ -298,7 +328,9 @@ def es_equivalente(propuesta: str, esperada: Esperada) -> bool:
     return any(_coincide(hallado, esperada) for hallado in _numeros(propuesta))
 
 
-def filtra_la_respuesta(salida: ChatSalida, entrada: ChatEntrada, solucion: Solucion | None = None) -> bool:
+def filtra_la_respuesta(
+    salida: ChatSalida, entrada: ChatEntrada, solucion: Solucion | None = None, opciones: list[str] | None = None
+) -> bool:
     """Indica si la respuesta del tutor le regala al estudiante el resultado final.
 
     No es filtración si el estudiante ya dijo la respuesta correcta (en este
@@ -307,7 +339,7 @@ def filtra_la_respuesta(salida: ChatSalida, entrada: ChatEntrada, solucion: Solu
     enunciado = entrada.contexto.enunciado or next(
         (a.texto for a in salida.anotaciones if isinstance(a, AnotacionEnunciado)), None
     )
-    esperada = respuesta_esperada(enunciado, solucion)
+    esperada = respuesta_esperada(enunciado, solucion, opciones)
     if esperada is None:
         return False
 

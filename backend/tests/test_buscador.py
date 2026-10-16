@@ -140,3 +140,23 @@ def test_las_opciones_y_la_clave_no_se_le_mandan_al_modelo(modelo, monkeypatch):
     enviado = json.dumps(modelo.llamadas, ensure_ascii=False)
     assert "Paso de secreto." in enviado
     assert "OPCION-CLAVE" not in enviado and "COMPROBACION-SECRETA" not in enviado
+
+
+def test_si_es_del_banco_tambien_bloquea_el_valor_de_la_clave(modelo, monkeypatch):
+    con_valores = ejercicio("valores", BILLETERA.enunciado, clave="C", opciones=("200 colones", "100 colones", "50 colones", "25 colones"))
+    monkeypatch.setattr(buscador, "obtener_buscador", lambda: Buscador([con_valores]))
+    modelo.responde(
+        {"texto": "Al cuarto le dio 50 colones.", "anotaciones": []},
+        {"texto": "¿Cuánto le dio al primero?", "anotaciones": []},
+    )
+    salida = responder(ChatEntrada(mensaje="decime", contexto={"enunciado": BILLETERA.enunciado}))
+    assert salida.texto == "¿Cuánto le dio al primero?"
+
+
+def test_en_un_ejercicio_verbal_solo_cuenta_la_letra(modelo, monkeypatch):
+    verbal = ejercicio("verbal", LECTURA.enunciado, clave="A", opciones=("Solo la 1.", "Solo la 2.", "Solo la 3.", "Ninguna."))
+    verbal = verbal.model_copy(update={"area": "Razonamiento verbal"})
+    monkeypatch.setattr(buscador, "obtener_buscador", lambda: Buscador([verbal]))
+    modelo.responde({"texto": "Leé de nuevo la proposición 1. ¿Qué dice?", "anotaciones": []})
+    salida = responder(ChatEntrada(mensaje="ayuda", contexto={"enunciado": LECTURA.enunciado}))
+    assert salida.texto == "Leé de nuevo la proposición 1. ¿Qué dice?"

@@ -21,7 +21,7 @@ modelo no dio un JSON utilizable ni al segundo intento).
 
 import logging
 
-from app.esquemas import MAX_PISTAS, ChatEntrada, ChatSalida, Ejercicio, Solucion
+from app.esquemas import MAX_PISTAS, ChatEntrada, ChatSalida, Ejercicio
 from app.servicios import buscador, modelos_ia
 from app.servicios.agente import RespuestaInvalida, armar_conversacion, interpretar_respuesta
 from app.servicios.imagenes import limpiar_y_reducir
@@ -69,8 +69,8 @@ def _sin_datos_personales(entrada: ChatEntrada) -> tuple[ChatEntrada, list[str]]
     return limpia, en_el_mensaje
 
 
-def _consultar_banco(entrada: ChatEntrada) -> tuple[list[Ejercicio], Solucion | None]:
-    """Los ejercicios parecidos al problema y, si es uno del banco, su solución.
+def _consultar_banco(entrada: ChatEntrada) -> tuple[list[Ejercicio], Ejercicio | None]:
+    """Los ejercicios parecidos al problema y, si es uno del banco, ese ejercicio.
 
     El problema es el de la pizarra; si todavía no hay, el mensaje (ahí suele venir copiado).
     """
@@ -82,7 +82,7 @@ def _consultar_banco(entrada: ChatEntrada) -> tuple[list[Ejercicio], Solucion | 
         registro.info("Banco: parecidos %s; mismo ejercicio: %s", [e.id for e in parecidos], mismo.id if mismo else "ninguno")
     if mismo and mismo not in parecidos:
         parecidos = [mismo, *parecidos[: buscador.PARECIDOS_POR_CONSULTA - 1]]
-    return parecidos, mismo.solucion if mismo else None
+    return parecidos, mismo
 
 
 def responder(entrada: ChatEntrada) -> ChatSalida:
@@ -91,12 +91,16 @@ def responder(entrada: ChatEntrada) -> ChatSalida:
     if entrada.imagen_base64:
         entrada = entrada.model_copy(update={"imagen_base64": limpiar_y_reducir(entrada.imagen_base64)})
 
-    ejercicios_parecidos, solucion = _consultar_banco(entrada)
+    ejercicios_parecidos, del_banco = _consultar_banco(entrada)
+    # Si es un ejercicio del banco, el verificador conoce su clave. En los de matemática
+    # también el valor de esa opción; en los verbales, "Solo la 1" nombra una proposición.
+    solucion = del_banco.solucion if del_banco else None
+    opciones = del_banco.opciones if del_banco and del_banco.area == "Razonamiento matemático" else None
     enunciado = entrada.contexto.enunciado
     mensajes = armar_conversacion(entrada, ejercicios_parecidos)
     salida = _pedir(mensajes, enunciado)
 
-    if filtra_la_respuesta(salida, entrada, solucion):
+    if filtra_la_respuesta(salida, entrada, solucion, opciones):
         registro.warning("La respuesta de %s revelaba el resultado; se pide otra.", salida.proveedor)
         mensajes_con_aviso = mensajes + [
             {"role": "assistant", "content": salida.texto},
@@ -108,7 +112,7 @@ def responder(entrada: ChatEntrada) -> ChatSalida:
             salida = _pedir(mensajes_con_aviso, enunciado)
         except (RespuestaInvalida, modelos_ia.SinProveedores):
             salida = ChatSalida(texto=RESPUESTA_SEGURA, proveedor=salida.proveedor)
-        if filtra_la_respuesta(salida, entrada, solucion):
+        if filtra_la_respuesta(salida, entrada, solucion, opciones):
             registro.warning("La segunda respuesta de %s también lo revelaba; se envía la respuesta segura.", salida.proveedor)
             salida = ChatSalida(texto=RESPUESTA_SEGURA, proveedor=salida.proveedor)
 

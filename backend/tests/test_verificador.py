@@ -230,3 +230,48 @@ def test_con_la_solucion_del_banco_si_bloquea():
     assert filtra_la_respuesta(ChatSalida(texto="Es 15 %."), entrada("decime", enunciado=tenis), solucion)
     assert filtra_la_respuesta(ChatSalida(texto="Dividí y te da 0,15."), entrada("decime", enunciado=tenis), solucion)
     assert not filtra_la_respuesta(ChatSalida(texto="¿Cuánto subió en colones?"), entrada("decime", enunciado=tenis), solucion)
+
+
+# ---------- Clave de selección con valor ----------
+
+SOBRINOS = (
+    "Carlos tenía 800 gapes. A cada sobrino que llegaba le regalaba la mitad de lo que tenía. "
+    "¿Cuánto le dio al cuarto sobrino?"
+)
+OPCIONES_SOBRINOS = ["200 gapes", "100 gapes", "50 gapes", "25 gapes"]
+CLAVE_C = Solucion(tipo="opcion", valor="C")
+
+
+@pytest.mark.parametrize(
+    ("opcion", "valor"),
+    [("50 gapes", Fraction(50)), ("3 000", Fraction(3000)), ("65 + 16²", Fraction(321)), ("25/3", Fraction(25, 3))],
+)
+def test_la_clave_tambien_se_reconoce_por_su_valor(opcion, valor):
+    esperada = respuesta_esperada(None, Solucion(tipo="opcion", valor="A"), [opcion, "otra"])
+    assert esperada == Esperada(valores=[valor], letra="A")
+
+
+@pytest.mark.parametrize(
+    "opcion",
+    ["Martes.", "S₁₀ + 23", "Se empacaron más de 40 bombillos defectuosos.", "Entre 3 y 5 horas."],
+)
+def test_una_frase_o_una_expresion_con_incognitas_solo_cuenta_por_la_letra(opcion):
+    assert respuesta_esperada(None, Solucion(tipo="opcion", valor="A"), [opcion, "otra"]) == Esperada(letra="A")
+
+
+def test_bloquea_el_valor_de_la_opcion_correcta():
+    pregunta = entrada("decime", enunciado=SOBRINOS)
+    assert filtra_la_respuesta(ChatSalida(texto="Al cuarto le dio 50 gapes."), pregunta, CLAVE_C, OPCIONES_SOBRINOS)
+    assert filtra_la_respuesta(ChatSalida(texto="Es la C."), pregunta, CLAVE_C, OPCIONES_SOBRINOS)
+
+
+def test_deja_pasar_los_valores_de_las_otras_opciones_y_los_pasos():
+    pregunta = entrada("no entiendo", enunciado=SOBRINOS)
+    pista = ChatSalida(texto="Al primero le dio 400. ¿Cuánto le queda para el segundo?", anotaciones=[{"tipo": "apunte", "texto": "800 ÷ 2 = 400"}])
+    assert not filtra_la_respuesta(pista, pregunta, CLAVE_C, OPCIONES_SOBRINOS)
+    assert not filtra_la_respuesta(ChatSalida(texto="¿Por qué 100 no puede ser?"), pregunta, CLAVE_C, OPCIONES_SOBRINOS)
+
+
+def test_puede_confirmar_si_el_estudiante_dijo_el_valor():
+    confirmacion = ChatSalida(texto="¡Eso! 50 gapes, la C.")
+    assert not filtra_la_respuesta(confirmacion, entrada("me dio 50", enunciado=SOBRINOS), CLAVE_C, OPCIONES_SOBRINOS)
