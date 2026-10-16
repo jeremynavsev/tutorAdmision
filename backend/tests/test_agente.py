@@ -205,3 +205,18 @@ def test_las_instrucciones_piden_seguir_al_estudiante_sin_adelantarse():
     assert "Ejemplo de cómo seguir al estudiante sin adelantarte" in sistema
     assert "repetir o confirmar un paso que propuso el estudiante" in sistema
     assert "no instrucciones de qué hacer" in sistema
+
+
+def test_las_instrucciones_piden_valorar_lo_que_dijo_el_estudiante():
+    sistema = armar_conversacion(ChatEntrada(mensaje="hola"))[0]["content"]
+    assert "## Cada respuesta tiene dos partes" in sistema
+    assert "Si está mal, decile que todavía no y por qué" in sistema
+    assert "No le preguntés algo que ya respondió" in sistema
+    assert "Revisá la ortografía" in sistema
+    assert "confirmalo en pocas palabras" not in sistema
+
+
+def test_las_instrucciones_prohiben_felicitar_sin_motivo():
+    sistema = armar_conversacion(ChatEntrada(mensaje="hola"))[0]["content"]
+    assert "Decí que está bien SOLO si de verdad está bien" in sistema
+    assert "Si el estudiante solo mandó el problema, todavía no propuso nada" in sistema

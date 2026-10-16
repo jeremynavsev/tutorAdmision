@@ -4,8 +4,24 @@ import json
 
 import pytest
 
+from app.datos import db
 from app.servicios import modelos_ia
 from app.servicios.modelos_ia import RespuestaModelo, SinProveedores
+
+
+@pytest.fixture(autouse=True)
+def base_de_datos_en_memoria():
+    """Cada prueba usa una base de datos nueva en memoria: nunca toca maestro.db."""
+    db.configurar("sqlite://")
+    yield
+
+
+@pytest.fixture
+def sesion() -> str:
+    """Una sesión anónima ya creada, como la que tiene el estudiante después de aceptar el aviso."""
+    with db.sesion_bd() as bd:
+        bd.add(db.Sesion(id="sesion-de-prueba"))
+    return "sesion-de-prueba"
 
 
 @pytest.fixture(autouse=True)

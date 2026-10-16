@@ -61,7 +61,11 @@ otros archivos.
 - **Mistral**: su API ya no es gratuita (pago por uso o plan Pro). Sigue soportado en el
   código por si se consigue una llave.
 - **Los planes gratuitos no alcanzan para el piloto** con estudiantes: hay que
-  presupuestar un plan de pago antes de la fase 6.
+  presupuestar un plan de pago antes de la fase 6. Groq gratuito da 200 000 tokens por
+  día y cada mensaje del tutor gasta unos 2700 (las instrucciones solas son unos 2000):
+  alcanza para unos 70 mensajes al día entre todos los estudiantes.
+- **Conviene achicar las instrucciones del tutor:** cada token se paga en cada mensaje
+  de cada estudiante. Hacerlo con la evaluación automática, para no perder calidad.
 - **Ollama** (modelos en un servidor propio) es gratis, sin cuotas y más privado, pero
   necesita un servidor con tarjeta de video. Es una opción si la universidad presta uno,
   o para servir un modelo con ajuste fino en la fase 5.
@@ -78,10 +82,19 @@ otros archivos.
 
 ## Fase 3 — Seguridad y límites (1 semana)
 
-- [ ] `servicios/limites.py`: mensajes por sesión y por día (SQLite local, Neon en
-      producción).
-- [ ] Detectar datos personales (cédulas, teléfonos) y pedir que no se compartan.
-- [ ] Probar intentos de sacar al tutor de su papel (que dé la respuesta, otros temas).
+- [x] `servicios/limites.py`: 40 mensajes por estudiante y 1000 por conexión al día, en
+      hora de Costa Rica. Se cuentan solo si el tutor respondió. De la conexión se guarda
+      una huella diaria, nunca la IP.
+- [x] La página crea la sesión al aceptar el aviso (y otra sola si se venció), avisa
+      cuando quedan 5 mensajes o menos y bloquea el campo al llegar al límite.
+- [x] Detectar datos personales (cédulas, teléfonos, correos y nombres completos): la
+      página pregunta antes de enviar y el backend los oculta antes de mandarlos a la IA.
+      Las direcciones no se detectan; para eso queda la regla de las instrucciones.
+- [x] Probar intentos de sacar al tutor de su papel: 8 casos en la evaluación (respuesta
+      en clave o en la pizarra, "modo desarrollador", presión emocional, insultos, pedir
+      sus instrucciones, un ensayo de otra materia y "solo decime si es 7 u 8").
+      En los que corrieron con IA no filtró la respuesta; falta correrlos todos cuando
+      haya cuota.
 
 ## Fase 4 — Banco de ejercicios (2–4 semanas, en paralelo con las fases 1–3)
 
@@ -98,8 +111,11 @@ otros archivos.
 1. [ ] **Consulta del banco (RAG):** al recibir un problema, buscar los ejercicios más
        parecidos y pasarle al modelo, en privado, sus pasos y errores comunes.
 2. [ ] **Ejemplos en las instrucciones:** 2–3 conversaciones modelo de buena tutoría.
-3. [ ] **Evaluación automática:** 50–100 conversaciones de prueba que midan si filtró la
-       respuesta, si la pista es correcta, si respeta el nivel de pista y si usa voseo.
+3. [ ] **Evaluación automática** (empezada en la fase 3: `backend/evaluacion/`, con 10
+       conversaciones y revisiones por patrones; falta ampliarla y sumar un evaluador
+       con IA que califique la calidad de las pistas). Meta: 50–100 conversaciones de
+       prueba que midan si filtró la respuesta, si la pista es correcta, si respeta el
+       nivel de pista y si usa voseo.
        Correrla cada vez que cambien las instrucciones o el modelo.
 4. [ ] **Ajuste fino, solo si la evaluación lo justifica:** entrenar con *conversaciones de
        tutoría* generadas a partir del banco y revisadas por personas (LoRA sobre un

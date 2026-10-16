@@ -31,10 +31,11 @@ prototipo/
 │   │   ├── esquemas.py      Modelos Pydantic de entrada y salida
 │   │   ├── rutas/           salud, ejercicios, sesiones, chat
 │   │   ├── servicios/       tutor (une todo), agente, modelos_ia, verificador,
-│   │   │                    imagenes, limites
+│   │   │                    imagenes, limites, privacidad
 │   │   └── datos/db.py      SQLAlchemy: SQLite local, PostgreSQL (Neon) en producción
 │   ├── ejercicios/banco.json  Banco de ejercicios de ejemplo
 │   ├── tests/               Pruebas con pytest
+│   ├── evaluacion/          Conversaciones de prueba para medir la calidad del tutor
 │   ├── requirements.txt     Dependencias de producción (versiones fijas)
 │   ├── requirements-dev.txt Más las de pruebas (pytest, httpx)
 │   ├── .env.example
@@ -49,6 +50,8 @@ prototipo/
 │       ├── tutorRemoto.ts   Tutor real: llama al backend
 │       ├── tutorSimulado.ts Tutor de mentiras, para mostrar la interfaz sin backend
 │       ├── fotos.ts         Reduce y endereza la foto antes de subirla
+│       ├── sesion.ts        Sesión anónima del estudiante (para el límite diario)
+│       ├── privacidad.ts    Detecta datos personales antes de enviar (copia de las reglas del backend)
 │       ├── chats.ts         Historial de chats (por ahora en localStorage)
 │       ├── trazos.ts        Círculos y trazos "a mano" de la pizarra
 │       └── tema.ts          Modo claro/oscuro
@@ -66,7 +69,7 @@ prototipo/
 | ------ | ----------------- | ----------------------------------------------------- |
 | GET    | `/api/salud`      | `{"ok": true}`                                        |
 | GET    | `/api/ejercicios` | Dos ejercicios de ejemplo (sin solución)              |
-| POST   | `/api/sesiones`   | `{"ok": true}`                                        |
+| POST   | `/api/sesiones`   | Crea una sesión anónima y devuelve su `sesion_id`     |
 | POST   | `/api/chat`       | La respuesta del tutor (IA real)                      |
 
 `POST /api/chat` recibe `mensaje`, `imagen_base64` (opcional), `historial` y `contexto`
@@ -124,6 +127,17 @@ cd /home/jeremy/semestreII2026/Examen/prototipo/backend
 source .venv/bin/activate
 pytest
 ```
+
+Evaluación del tutor con IA real (gasta cuota: cada turno es una consulta):
+
+```bash
+cd /home/jeremy/Documents/tutorAdmision/backend
+.venv/bin/python -m evaluacion.evaluar
+```
+
+Corre las conversaciones de `evaluacion/casos.json` y revisa cada respuesta: si confirma
+un acierto, si señala un error, si vuelve a preguntar algo ya respondido, si revela la
+respuesta y si usa voseo. Deja un reporte en `evaluacion/resultados/`.
 
 Con Podman:
 

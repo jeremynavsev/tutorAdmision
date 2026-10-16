@@ -71,7 +71,14 @@ class Configuracion:
     gemini_modelos_respaldo: tuple[str, ...] = ("gemini-3.5-flash", "gemini-3.1-flash-lite")
     database_url: str = "sqlite:///./maestro.db"
     limite_mensajes_sesion: int = 40
-    limite_mensajes_dia: int = 150
+    """Mensajes por estudiante (sesión) por día."""
+    limite_mensajes_conexion: int = 1000
+    """Mensajes por conexión por día. Alto, porque en un colegio todo un laboratorio
+    comparte la misma conexión; solo evita que alguien se salte el límite de su sesión."""
+    secreto_huellas: str = ""
+    """Clave para calcular la huella de cada conexión sin guardar su IP."""
+    confiar_en_proxy: bool = False
+    """En producción, detrás de un proxy, la IP real viene en el encabezado X-Forwarded-For."""
     origenes_permitidos: list[str] = field(default_factory=lambda: ["http://localhost:3100"])
 
 
@@ -93,6 +100,8 @@ def obtener_configuracion() -> Configuracion:
         gemini_modelos_respaldo=_lista("GEMINI_MODELOS_RESPALDO", Configuracion.gemini_modelos_respaldo),
         database_url=os.environ.get("DATABASE_URL", "sqlite:///./maestro.db"),
         limite_mensajes_sesion=_entero("LIMITE_MENSAJES_SESION", 40),
-        limite_mensajes_dia=_entero("LIMITE_MENSAJES_DIA", 150),
+        limite_mensajes_conexion=_entero("LIMITE_MENSAJES_CONEXION", 1000),
+        secreto_huellas=os.environ.get("SECRETO_HUELLAS", "").strip(),
+        confiar_en_proxy=os.environ.get("CONFIAR_EN_PROXY", "").strip().lower() in ("1", "si", "sí", "true"),
         origenes_permitidos=[o.strip() for o in origenes.split(",") if o.strip()],
     )

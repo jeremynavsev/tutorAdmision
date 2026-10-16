@@ -33,7 +33,7 @@ export class ErrorDeApi extends Error {
 const MENSAJE_SIN_CONEXION = "No hay conexión con el tutor. Revisá tu internet y probá de nuevo.";
 const MENSAJE_GENERICO = "Algo salió mal. Probá de nuevo en un ratito.";
 
-async function pedir<T>(ruta: string, opciones?: RequestInit): Promise<T> {
+async function pedirConEncabezados<T>(ruta: string, opciones?: RequestInit): Promise<{ datos: T; encabezados: Headers }> {
   let respuesta: Response;
   try {
     respuesta = await fetch(`${API_URL}${ruta}`, {
@@ -45,7 +45,7 @@ async function pedir<T>(ruta: string, opciones?: RequestInit): Promise<T> {
     throw new ErrorDeApi(MENSAJE_SIN_CONEXION, 0);
   }
   if (!respuesta.ok) {
-    // El backend manda en `detail` un mensaje pensado para el estudiante (400 y 503).
+    // El backend manda en `detail` un mensaje pensado para el estudiante (400, 401, 429 y 503).
     // En un 422 (datos que no cumplen el contrato) `detail` es una lista técnica: no se muestra.
     let detalle: unknown;
     try {
@@ -55,7 +55,11 @@ async function pedir<T>(ruta: string, opciones?: RequestInit): Promise<T> {
     }
     throw new ErrorDeApi(typeof detalle === "string" && detalle ? detalle : MENSAJE_GENERICO, respuesta.status);
   }
-  return respuesta.json() as Promise<T>;
+  return { datos: (await respuesta.json()) as T, encabezados: respuesta.headers };
+}
+
+async function pedir<T>(ruta: string, opciones?: RequestInit): Promise<T> {
+  return (await pedirConEncabezados<T>(ruta, opciones)).datos;
 }
 
 /** GET /api/salud — indica si el backend está en línea. */
@@ -68,12 +72,20 @@ export function obtenerEjercicios(): Promise<Ejercicio[]> {
   return pedir("/api/ejercicios");
 }
 
-/** POST /api/sesiones — abre una sesión anónima después de aceptar el aviso. */
-export function crearSesion(datos: { acepto_aviso: boolean }): Promise<{ ok: boolean }> {
+/** POST /api/sesiones — crea la sesión anónima después de aceptar el aviso. */
+export function crearSesion(datos: { acepto_aviso: boolean }): Promise<{ sesion_id: string }> {
   return pedir("/api/sesiones", { method: "POST", body: JSON.stringify(datos) });
 }
 
-/** POST /api/chat — envía el mensaje (y opcionalmente una foto) con su historial y contexto. */
-export function enviarMensaje(datos: ChatEntradaApi): Promise<ChatSalidaApi> {
-  return pedir("/api/chat", { method: "POST", body: JSON.stringify(datos) });
+/**
+ * POST /api/chat — envía el mensaje (y opcionalmente una foto) con su historial y contexto.
+ * Devuelve también cuántos mensajes le quedan hoy al estudiante.
+ */
+export async function enviarMensaje(datos: ChatEntradaApi): Promise<{ salida: ChatSalidaApi; restantes: number | null }> {
+  const { datos: salida, encabezados } = await pedirConEncabezados<ChatSalidaApi>("/api/chat", {
+    method: "POST",
+    body: JSON.stringify(datos),
+  });
+  const restantes = encabezados.get("X-Mensajes-Restantes");
+  return { salida, restantes: restantes === null ? null : Number(restantes) };
 }

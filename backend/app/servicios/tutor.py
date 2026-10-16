@@ -2,7 +2,10 @@
 
 Pasos de ``responder``:
 
-1. Si viene una foto, se limpia (sin metadatos, derecha y reducida).
+1. Se ocultan los datos personales del texto (cédulas, teléfonos, correos y
+   nombres completos), para que no lleguen al proveedor. Si venían en el
+   mensaje, la respuesta empieza avisándole al estudiante.
+   Si viene una foto, se limpia (sin metadatos, derecha y reducida).
 2. Se arma la conversación y se consulta la cadena de proveedores.
 3. Si el modelo devuelve algo que no es el JSON esperado, se le pide de nuevo.
 4. Se revisa que la respuesta no regale el resultado. Si lo regala, se le pide
@@ -19,6 +22,7 @@ from app.esquemas import MAX_PISTAS, ChatEntrada, ChatSalida, Ejercicio, Solucio
 from app.servicios import modelos_ia
 from app.servicios.agente import RespuestaInvalida, armar_conversacion, interpretar_respuesta
 from app.servicios.imagenes import limpiar_y_reducir
+from app.servicios.privacidad import aviso_de_datos_ocultos, ocultar
 from app.servicios.verificador import filtra_la_respuesta
 
 registro = logging.getLogger(__name__)
@@ -48,12 +52,27 @@ def _pedir(mensajes: list[dict], enunciado: str | None) -> ChatSalida:
     raise ultimo_error  # type: ignore[misc]  # el ciclo corre al menos una vez
 
 
+def _sin_datos_personales(entrada: ChatEntrada) -> tuple[ChatEntrada, list[str]]:
+    """Oculta los datos personales del mensaje, del historial y del enunciado.
+
+    Devuelve la entrada limpia y los tipos de datos que traía el mensaje actual.
+    """
+    mensaje, en_el_mensaje = ocultar(entrada.mensaje)
+    historial = [m.model_copy(update={"texto": ocultar(m.texto)[0]}) for m in entrada.historial]
+    contexto = entrada.contexto
+    if contexto.enunciado:
+        contexto = contexto.model_copy(update={"enunciado": ocultar(contexto.enunciado)[0]})
+    limpia = entrada.model_copy(update={"mensaje": mensaje, "historial": historial, "contexto": contexto})
+    return limpia, en_el_mensaje
+
+
 def responder(
     entrada: ChatEntrada,
     ejercicios_parecidos: list[Ejercicio] | None = None,
     solucion: Solucion | None = None,
 ) -> ChatSalida:
     """Devuelve la respuesta del tutor al mensaje del estudiante."""
+    entrada, datos_ocultos = _sin_datos_personales(entrada)
     if entrada.imagen_base64:
         entrada = entrada.model_copy(update={"imagen_base64": limpiar_y_reducir(entrada.imagen_base64)})
 
@@ -80,5 +99,9 @@ def responder(
     # El número de pista no se le confía al modelo: es el contador de la conversación más uno.
     if salida.pista is not None:
         salida = salida.model_copy(update={"pista": min(entrada.contexto.pistas_dadas + 1, MAX_PISTAS)})
+
+    # El aviso lo escribe el código, no la IA: así siempre aparece y siempre dice lo mismo.
+    if datos_ocultos:
+        salida = salida.model_copy(update={"texto": f"{aviso_de_datos_ocultos(datos_ocultos)} {salida.texto}"})
 
     return salida

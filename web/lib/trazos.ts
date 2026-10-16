@@ -63,6 +63,3 @@ export function tachonAMano(caja: Caja, semilla: string): string {
   const medio = (x0 + x1) / 2;
   return `M${r1(x0)} ${r1(y + 4 + al() * 3)} Q${r1(medio)} ${r1(y - 6 - al() * 4)} ${r1(x1)} ${r1(y - 3 + al() * 3)}`;
 }
-
-/** Circulito para el número de pista (en un viewBox de 32 × 32). */
-export const CIRCULITO_PISTA = "M24 7 C 19 2.5, 7 3.5, 4.5 13 C 2.5 21, 9 28.5, 17 28 C 25 27.5, 29.5 20, 27.5 12.5 C 26.5 9, 23 6, 18.5 5.5";
