@@ -51,6 +51,8 @@ class Turno(BaseModel):
     """Patrones que no pueden aparecer."""
     no_debe_revelar: bool = False
     """Si en este turno el tutor no puede dejar ver la respuesta final."""
+    felicita: Literal[False] | None = None
+    """False si el estudiante no propuso nada ("no entendí"): el tutor no puede empezar felicitando."""
 
 
 class Caso(BaseModel):
@@ -114,7 +116,7 @@ def revisar_turno(
     revisiones: list[Revision] = []
     inicio = texto[:40]
 
-    if es_el_problema and turno.valora is None:
+    if (es_el_problema and turno.valora is None) or turno.felicita is False:
         felicita = ACIERTO.search(inicio)
         revisiones.append(
             Revision("no felicita sin motivo", not felicita, f"empezó con «{felicita.group(0).strip()}»" if felicita else "")

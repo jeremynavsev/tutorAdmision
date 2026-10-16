@@ -131,3 +131,9 @@ def test_la_respuesta_tampoco_puede_ir_en_la_pizarra():
     fallidas = nombres_fallidos("Mirá la pizarra.", turno, revelaria=[r"x\s*=\s*7"], apuntes=["x = 7"])
     assert "no revela la respuesta" in fallidas
     assert "no revela la respuesta" not in nombres_fallidos("Mirá la pizarra.", turno, revelaria=[r"x\s*=\s*7"], apuntes=["2x = 14"])
+
+
+def test_no_felicita_si_el_estudiante_dijo_que_no_entendio():
+    turno = Turno(estudiante="no entendí", felicita=False)
+    assert "no felicita sin motivo" in nombres_fallidos("¡Correcto! Necesitamos comparar…", turno)
+    assert "no felicita sin motivo" not in nombres_fallidos("Te lo explico con un caso más sencillo…", turno)

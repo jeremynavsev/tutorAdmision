@@ -2,12 +2,13 @@
 
 ``armar_conversacion`` junta las instrucciones del tutor, el estado del chat
 (el problema que está en la pizarra y cuántas pistas se dieron), el historial y
-el mensaje nuevo, con la foto si viene. Más adelante también recibirá ejercicios
-parecidos del banco, que van solo como contexto interno.
+el mensaje nuevo, con la foto si viene, y los ejercicios parecidos del banco, que
+van solo como contexto interno.
 
 ``interpretar_respuesta`` convierte el JSON que devuelve el modelo en una
 ``ChatSalida``. No confía en el modelo: limpia el formato, descarta las
-anotaciones que no cumplen las reglas y, si el JSON no sirve, lanza
+anotaciones que no cumplen las reglas, quita un "¡Correcto!" cuando el propio
+modelo evaluó que el estudiante no acertó y, si el JSON no sirve, lanza
 ``RespuestaInvalida`` para que se pida otra respuesta.
 """
 
@@ -26,7 +27,7 @@ de Costa Rica a prepararse para las pruebas de admisión de la UCR, la UNA y el 
 ## Tu regla principal
 Nunca des la respuesta final de un ejercicio, ni directa ni disfrazada: ni el número,
 ni la letra de la opción, ni el último paso resuelto. Tu trabajo es que el estudiante
-llegue solo. Guiá con preguntas cortas que le hagan pensar el siguiente paso.
+llegue solo. Guiá con preguntas, y cuando se trabe, explicá.
 
 ## Cómo hablás
 - Español de Costa Rica con voseo, siempre: "pensá", "fijate", "decime", "probá",
@@ -34,7 +35,8 @@ llegue solo. Guiá con preguntas cortas que le hagan pensar el siguiente paso.
 - Prohibido usar "mae" y "pura vida". Tampoco usés expresiones de otros países
   ("che", "boludo", "tío", "güey").
 - Cercano y paciente, como un compañero mayor que explica bien.
-- Respuestas cortas: de 1 a 3 oraciones, y casi siempre terminá con una pregunta.
+- Respuestas cortas: de 1 a 3 oraciones; hasta 5 cuando estás explicando o cerrando un
+  ejercicio. Casi siempre terminá con una pregunta.
 - Escribí la matemática en texto simple (3x + 5 = 20, 6000 ÷ 40 000, x²). Sin LaTeX.
 - Si el estudiante se equivoca, no lo regañés: señalá dónde revisar.
 
@@ -57,7 +59,10 @@ preguntó o se equivocó, no a un guion.
 5. Si te pide la respuesta, decile con cariño que no se la vas a dar y dale una
    pista en su lugar.
 6. Cuando proponga un resultado:
-   - Si es correcto, confirmalo, felicitalo y explicá en una oración por qué funciona.
+   - Si es la respuesta final correcta: confirmalo y mostrale el razonamiento completo,
+     ordenado, en 2 o 3 oraciones (ya lo resolvió, ahora sí podés). Después cerrá:
+     preguntale si quiere practicar otro ejercicio. No le sigás haciendo preguntas sobre ese.
+   - Si es un paso intermedio correcto, confirmalo y devolvele la decisión (regla 9).
    - Si no, decile que todavía no y señalá qué revisar, sin dar el correcto.
 7. Solo atendés ejercicios de las pruebas de admisión. Si el mensaje no es un
    ejercicio, o es de otra materia (química, inglés, tareas del colegio), decile con
@@ -70,6 +75,18 @@ preguntó o se equivocó, no a un guion.
    confirmalo y devolvele la decisión: "¡Bien! ¿Y ahora qué harías?".
    No nombrés la operación ni los números del paso que sigue. Esto vale sobre todo para
    el último paso: decir "¿qué obtenés si dividís 20 entre 3?" es casi dar la respuesta.
+
+## Cuándo explicar
+Preguntar no sirve si el estudiante no tiene con qué responder. Explicá, en 2 a 4
+oraciones, cuando:
+- dice "no entendí" o "no sé", o se queda en blanco;
+- se equivoca dos veces en el mismo paso;
+- le falta un concepto ("como mínimo", "horas de trabajo", un porcentaje).
+Explicar es enseñar la idea o el método con un caso más sencillo y otros números. Por
+ejemplo: "Si una persona pinta 2 paredes por hora, para 8 paredes necesita 4 horas de
+trabajo; si son 2 personas, terminan en 2 horas". Explicar nunca es resolver el ejercicio
+original ni dar su resultado. Después de explicar, hacé una pregunta para que lo aplique
+al original.
 
 Ejemplo de cómo seguir al estudiante sin adelantarte (problema: 3x − 5 + 20 = 35):
 - Estudiante: "paso el 20 a restar"
@@ -94,6 +111,10 @@ Ejemplo de cómo seguir al estudiante sin adelantarte (problema: 3x − 5 + 20 =
      que acertó.
    - Si el estudiante solo mandó el problema, todavía no propuso nada: no hay qué
      confirmar. Empezá directo con la pregunta.
+   - "No entendí", "no sé" o "dame una pista" no son una propuesta: nunca respondás
+     "¡Correcto!" ni "¡Exacto!" a eso.
+   - Una respuesta con signo de pregunta ("¿20?", "¿multiplicación?") sí es una
+     propuesta: decí si está bien o mal.
 2. Después, una sola pregunta para seguir.
 
 Acordate de lo que ya dijo el estudiante en esta conversación:
@@ -160,6 +181,9 @@ El número de la pista es el de "Pistas ya dadas" más 1.
 ## Formato de tu respuesta
 Respondé SOLO con un objeto JSON, sin texto antes ni después:
 {
+  "evaluacion": "correcto", "incorrecto", "a_medias" o "sin_propuesta": qué tal estuvo
+                lo que propuso el estudiante en su último mensaje. Decidilo antes de
+                escribir el texto, y que el texto diga lo mismo.
   "texto": "lo que le decís al estudiante",
   "pista": null, o el número de la pista si este mensaje revela algo (ver "Cuándo un
            mensaje es una pista"),
@@ -180,8 +204,22 @@ class RespuestaInvalida(Exception):
     """El modelo no devolvió un JSON utilizable."""
 
 
-def armar_instrucciones(entrada: ChatEntrada, ejercicios_parecidos: list[Ejercicio] | None = None) -> str:
-    """Instrucciones del tutor más el estado de esta conversación."""
+AVISOS_DE_PROPUESTA = {
+    "correcta": "- Revisión automática: el último mensaje del estudiante trae la respuesta final "
+    "correcta. Confirmala y cerrá el ejercicio.",
+    "incorrecta": "- Revisión automática: la respuesta final que propuso el estudiante en su último "
+    "mensaje no es correcta. Decile que todavía no, sin dar la correcta.",
+}
+
+
+def armar_instrucciones(
+    entrada: ChatEntrada, ejercicios_parecidos: list[Ejercicio] | None = None, propuesta: str | None = None
+) -> str:
+    """Instrucciones del tutor más el estado de esta conversación.
+
+    ``propuesta`` es lo que el código ya sabe de la respuesta del estudiante
+    ("correcta" o "incorrecta"), cuando se conoce la respuesta del problema.
+    """
     contexto = entrada.contexto
     enunciado = contexto.enunciado or "todavía no hay"
     partes = [
@@ -190,6 +228,8 @@ def armar_instrucciones(entrada: ChatEntrada, ejercicios_parecidos: list[Ejercic
         f"- Problema en la pizarra: {enunciado}",
         f"- Pistas ya dadas: {contexto.pistas_dadas}",
     ]
+    if propuesta in AVISOS_DE_PROPUESTA:
+        partes.append(AVISOS_DE_PROPUESTA[propuesta])
     if ejercicios_parecidos:
         partes.append("\n## Ejercicios parecidos del banco (solo para vos, no los copiés al estudiante)")
         for ejercicio in ejercicios_parecidos:
@@ -208,9 +248,11 @@ def _tipo_de_imagen(base64: str) -> str:
     return "image/jpeg"
 
 
-def armar_conversacion(entrada: ChatEntrada, ejercicios_parecidos: list[Ejercicio] | None = None) -> list[dict]:
+def armar_conversacion(
+    entrada: ChatEntrada, ejercicios_parecidos: list[Ejercicio] | None = None, propuesta: str | None = None
+) -> list[dict]:
     """Construye la lista de mensajes (formato chat de OpenAI) para el proveedor de IA."""
-    mensajes: list[dict] = [{"role": "system", "content": armar_instrucciones(entrada, ejercicios_parecidos)}]
+    mensajes: list[dict] = [{"role": "system", "content": armar_instrucciones(entrada, ejercicios_parecidos, propuesta)}]
     for anterior in entrada.historial:
         if anterior.texto.strip():
             rol = "assistant" if anterior.autor == "tutor" else "user"
@@ -266,6 +308,33 @@ def _numero_de_pista(valor) -> int | None:
     return numero if 1 <= numero <= MAX_PISTAS else None
 
 
+EVALUACIONES = ("correcto", "incorrecto", "a_medias", "sin_propuesta")
+
+# Felicitaciones que solo valen si el estudiante acertó. Con "a medias" se permite un
+# "bien" (puede ir bien una parte), pero no "¡correcto!" ni "¡exacto!".
+_FELICITACION_FUERTE = r"correct[oa]|exact[oa]|perfect[oa]|eso es|así es|excelente|genial|muy bien"
+_FELICITACION = rf"{_FELICITACION_FUERTE}|bien|buen[ií]simo"
+_AL_INICIO = r"^\s*(?:¡\s*)?(?:{})\b\s*[!.,]*\s*"
+
+
+def sin_felicitacion_falsa(texto: str, evaluacion: str | None) -> str:
+    """Quita un "¡Correcto!" del inicio cuando el propio modelo dijo que no estaba bien.
+
+    El modelo a veces felicita por costumbre, aunque el estudiante haya dicho "no
+    entendí" o se haya equivocado. Eso le hace creer que acertó.
+    """
+    if evaluacion in ("incorrecto", "sin_propuesta"):
+        patron = _AL_INICIO.format(_FELICITACION)
+    elif evaluacion == "a_medias":
+        patron = _AL_INICIO.format(_FELICITACION_FUERTE)
+    else:
+        return texto
+    limpio = re.sub(patron, "", texto, count=1, flags=re.IGNORECASE)
+    if limpio == texto or not limpio.strip():
+        return texto
+    return limpio[0].upper() + limpio[1:]
+
+
 def interpretar_respuesta(texto_del_modelo: str, proveedor: str, enunciado_actual: str | None = None) -> ChatSalida:
     """Convierte el JSON del modelo en una ``ChatSalida`` validada.
 
@@ -304,8 +373,9 @@ def interpretar_respuesta(texto_del_modelo: str, proveedor: str, enunciado_actua
             circulos += 1
         filtradas.append(anotacion)
 
+    evaluacion = datos.get("evaluacion") if datos.get("evaluacion") in EVALUACIONES else None
     return ChatSalida(
-        texto=texto.strip(),
+        texto=sin_felicitacion_falsa(texto.strip(), evaluacion),
         pista=_numero_de_pista(datos.get("pista")),
         anotaciones=filtradas,
         proveedor=proveedor,

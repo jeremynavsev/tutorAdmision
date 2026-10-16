@@ -21,6 +21,7 @@ suelta como incógnita y operadores) y se limita su tamaño.
 import re
 from dataclasses import dataclass, field
 from fractions import Fraction
+from typing import Literal
 
 import sympy
 from sympy.parsing.sympy_parser import convert_xor, implicit_multiplication_application, parse_expr, standard_transformations
@@ -328,6 +329,46 @@ def es_equivalente(propuesta: str, esperada: Esperada) -> bool:
     return any(_coincide(hallado, esperada) for hallado in _numeros(propuesta))
 
 
+def _dice_la_respuesta(dicho: str, esperada: Esperada, enunciado: str | None) -> bool:
+    """Si lo que escribió el estudiante trae la respuesta final.
+
+    Se usa la misma regla que para el tutor: un número que también es dato del
+    problema no cuenta, salvo que lo presente como resultado.
+    """
+    solo_la_respuesta = len(dicho.strip()) <= 12 and es_equivalente(dicho, esperada)
+    return solo_la_respuesta or revela_solucion(dicho, esperada, enunciado)
+
+
+# Formas que solo pueden ser una respuesta final: una letra de opción ("la C", "¿B?")
+# o una incógnita despejada ("x = 7"). Un número suelto puede ser un paso intermedio
+# ("me queda 15"), así que nunca se declara incorrecto.
+_PROPONE_LETRA = re.compile(r"^\W*(?:(?:es\s+)?(?:la|opci[oó]n)\s+)?\(?([A-Ea-e])\)?\W*$", re.IGNORECASE)
+_PROPONE_DESPEJE = re.compile(rf"^\W*[a-z]\s*=\s*[-−]?\s*(?:{_NUMERO})(?:\s*/\s*\d+)?\W*$", re.IGNORECASE)
+
+Propuesta = Literal["correcta", "incorrecta"]
+
+
+def revisar_propuesta(
+    mensaje: str, enunciado: str | None, solucion: Solucion | None = None, opciones: list[str] | None = None
+) -> Propuesta | None:
+    """Si el estudiante propuso la respuesta final, dice si es correcta.
+
+    Solo responde cuando se conoce la respuesta (ejercicio del banco o problema que
+    SymPy resuelve) y está seguro; si no, devuelve None y el modelo juzga solo.
+    """
+    esperada = respuesta_esperada(enunciado, solucion, opciones)
+    if esperada is None or not mensaje.strip():
+        return None
+    if _dice_la_respuesta(mensaje, esperada, enunciado):
+        return "correcta"
+    texto = mensaje.strip()
+    if esperada.letra and _PROPONE_LETRA.match(texto):
+        return "incorrecta"
+    if esperada.valores and _PROPONE_DESPEJE.match(texto):
+        return "incorrecta"
+    return None
+
+
 def filtra_la_respuesta(
     salida: ChatSalida, entrada: ChatEntrada, solucion: Solucion | None = None, opciones: list[str] | None = None
 ) -> bool:
@@ -343,13 +384,10 @@ def filtra_la_respuesta(
     if esperada is None:
         return False
 
-    # ¿El estudiante ya la dijo? Se usa la misma regla que para el tutor: un número que
-    # también es dato del problema no cuenta, salvo que lo presente como resultado.
+    # ¿El estudiante ya la dijo? Entonces el tutor puede confirmarla.
     dichos = [m.texto for m in entrada.historial if m.autor == "estudiante"] + [entrada.mensaje]
-    for dicho in dichos:
-        solo_la_respuesta = len(dicho.strip()) <= 12 and es_equivalente(dicho, esperada)
-        if solo_la_respuesta or revela_solucion(dicho, esperada, enunciado):
-            return False
+    if any(_dice_la_respuesta(dicho, esperada, enunciado) for dicho in dichos):
+        return False
 
     textos = [salida.texto] + [a.texto for a in salida.anotaciones if isinstance(a, AnotacionApunte)]
     return any(revela_solucion(texto, esperada, enunciado) for texto in textos)

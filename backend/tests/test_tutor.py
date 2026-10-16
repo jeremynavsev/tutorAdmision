@@ -138,3 +138,23 @@ def test_el_numero_de_pista_sale_del_contador_no_del_modelo(modelo, pistas_dadas
 def test_si_no_es_pista_se_queda_sin_numero(modelo):
     modelo.responde({"texto": "¿Qué operación harías primero?", "pista": None, "anotaciones": []})
     assert responder(ChatEntrada(mensaje="hola", contexto={"enunciado": ECUACION, "pistas_dadas": 3})).pista is None
+
+
+def test_le_dice_al_modelo_que_el_estudiante_acerto(modelo):
+    modelo.responde({"texto": "¡Eso es! x = 5.", "anotaciones": []})
+    responder(ChatEntrada(mensaje="x = 5", contexto={"enunciado": ECUACION}))
+    assert "trae la respuesta final correcta" in modelo.llamadas[0][0]["content"]
+
+
+def test_si_se_equivoco_le_quita_la_felicitacion(modelo):
+    modelo.responde({"evaluacion": "correcto", "texto": "¡Exacto! Revisá la última cuenta.", "anotaciones": []})
+    salida = responder(ChatEntrada(mensaje="x = 7", contexto={"enunciado": ECUACION}))
+    assert "no es correcta" in modelo.llamadas[0][0]["content"]
+    assert salida.texto == "Revisá la última cuenta."
+
+
+def test_un_paso_intermedio_no_se_juzga(modelo):
+    modelo.responde({"texto": "¡Bien! ¿Y ahora?", "anotaciones": []})
+    salida = responder(ChatEntrada(mensaje="me queda 15", contexto={"enunciado": ECUACION}))
+    assert "Revisión automática" not in modelo.llamadas[0][0]["content"]
+    assert salida.texto == "¡Bien! ¿Y ahora?"

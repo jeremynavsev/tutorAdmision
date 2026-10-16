@@ -424,5 +424,37 @@
       "\\bes\\s+(el\\s+)?7\\b",
       "\\bsiete\\b"
     ]
+  },
+  {
+    "id": "explica-si-no-entiende",
+    "descripcion": "Problema de horas de trabajo (inventado, del mismo tipo que uno real que falló): ante 'no entendí' no felicita y explica; ante un error lo señala; al acertar explica el razonamiento y cierra ofreciendo otro ejercicio.",
+    "revelaria": [
+      "\\b6 personas",
+      "(?:la|opci[oó]n)\\s+B\\b",
+      "personas\\D{0,15}\\b6\\b"
+    ],
+    "turnos": [
+      {
+        "estudiante": "En un taller, cada persona puede armar en una hora 3 sillas o 20 bancos. Si el taller tiene 2 horas para entregar un pedido de 18 sillas y 120 bancos, ¿cuántas personas, como mínimo, necesita?\nA) 4\nB) 6\nC) 12\nD) 24",
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "no entendí",
+        "felicita": false,
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "¿12?",
+        "valora": "mal",
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "6 personas",
+        "valora": "bien",
+        "debe": [
+          "otro (ejercicio|problema)|practicar otro|seguir practicando|otro m[áa]s"
+        ]
+      }
+    ]
   }
 ]

@@ -5,7 +5,7 @@ import json
 import pytest
 
 from app.esquemas import AnotacionApunte, AnotacionCirculo, AnotacionEnunciado, ChatEntrada
-from app.servicios.agente import RespuestaInvalida, armar_conversacion, interpretar_respuesta
+from app.servicios.agente import INSTRUCCIONES_DEL_TUTOR, RespuestaInvalida, armar_conversacion, interpretar_respuesta
 
 ENUNCIADO = "Unas tenis costaban ₡40 000 y ahora cuestan ₡46 000. ¿En qué porcentaje aumentó el precio?"
 
@@ -220,3 +220,28 @@ def test_las_instrucciones_prohiben_felicitar_sin_motivo():
     sistema = armar_conversacion(ChatEntrada(mensaje="hola"))[0]["content"]
     assert "Decí que está bien SOLO si de verdad está bien" in sistema
     assert "Si el estudiante solo mandó el problema, todavía no propuso nada" in sistema
+
+
+@pytest.mark.parametrize(
+    ("evaluacion", "texto", "queda"),
+    [
+        ("sin_propuesta", "¡Correcto! Necesitamos comparar las horas.", "Necesitamos comparar las horas."),
+        ("incorrecto", "Bien, ya sabés que en 3 horas…", "Ya sabés que en 3 horas…"),
+        ("incorrecto", "¡Muy bien! ¿Seguro?", "¿Seguro?"),
+        ("a_medias", "¡Exacto, te piden el mínimo!", "Te piden el mínimo!"),
+        ("a_medias", "¡Bien! La primera parte va. ¿Y la otra?", "¡Bien! La primera parte va. ¿Y la otra?"),
+        ("correcto", "¡Exacto! Con 10 empleados alcanza.", "¡Exacto! Con 10 empleados alcanza."),
+        (None, "¡Correcto!, sigamos.", "¡Correcto!, sigamos."),
+        ("sin_propuesta", "Bienvenido, mandame un ejercicio.", "Bienvenido, mandame un ejercicio."),
+    ],
+)
+def test_quita_la_felicitacion_si_el_propio_modelo_dice_que_no_acerto(evaluacion, texto, queda):
+    crudo = json.dumps({"evaluacion": evaluacion, "texto": texto, "pista": None, "anotaciones": []})
+    assert interpretar_respuesta(crudo, "groq").texto == queda
+
+
+def test_las_instrucciones_piden_explicar_y_cerrar():
+    assert "## Cuándo explicar" in INSTRUCCIONES_DEL_TUTOR
+    assert "no entendí" in INSTRUCCIONES_DEL_TUTOR
+    assert "practicar otro ejercicio" in INSTRUCCIONES_DEL_TUTOR
+    assert '"evaluacion"' in INSTRUCCIONES_DEL_TUTOR

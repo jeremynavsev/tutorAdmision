@@ -13,6 +13,7 @@ from app.servicios.verificador import (
     resolver_enunciado,
     respuesta_esperada,
     revela_solucion,
+    revisar_propuesta,
 )
 
 # ---------- resolver_enunciado ----------
@@ -275,3 +276,38 @@ def test_deja_pasar_los_valores_de_las_otras_opciones_y_los_pasos():
 def test_puede_confirmar_si_el_estudiante_dijo_el_valor():
     confirmacion = ChatSalida(texto="¡Eso! 50 gapes, la C.")
     assert not filtra_la_respuesta(confirmacion, entrada("me dio 50", enunciado=SOBRINOS), CLAVE_C, OPCIONES_SOBRINOS)
+
+
+# ---------- revisar_propuesta ----------
+
+ECUACION_NEGATIVA = "5x + 10 = -20"
+
+
+@pytest.mark.parametrize(
+    ("mensaje", "veredicto"),
+    [
+        ("-6", "correcta"),
+        ("x = -6", "correcta"),
+        ("me dio x = -6", "correcta"),
+        ("x = 6", "incorrecta"),
+        ("x=-30", "incorrecta"),
+        ("-30", None),  # un número suelto puede ser un paso intermedio
+        ("pasar el 10 a restar", None),
+        ("no sé", None),
+        ("", None),
+    ],
+)
+def test_revisa_lo_que_propone_en_una_ecuacion(mensaje, veredicto):
+    assert revisar_propuesta(mensaje, ECUACION_NEGATIVA) == veredicto
+
+
+@pytest.mark.parametrize(
+    ("mensaje", "veredicto"),
+    [("la C", "correcta"), ("C", "correcta"), ("50", "correcta"), ("¿B?", "incorrecta"), ("opción A", "incorrecta"), ("100", None)],
+)
+def test_revisa_lo_que_propone_en_un_ejercicio_del_banco(mensaje, veredicto):
+    assert revisar_propuesta(mensaje, SOBRINOS, CLAVE_C, OPCIONES_SOBRINOS) == veredicto
+
+
+def test_sin_respuesta_conocida_no_opina():
+    assert revisar_propuesta("10", "¿Cuántos empleados necesita la fábrica como mínimo?") is None

@@ -8,7 +8,9 @@ Pasos de ``responder``:
    Si viene una foto, se limpia (sin metadatos, derecha y reducida).
 2. Se buscan en el banco los ejercicios parecidos al problema: sus pasos y
    errores comunes van en privado en las instrucciones. Si el problema es uno
-   del banco, su clave se usa para verificar la respuesta.
+   del banco, su clave se usa para verificar la respuesta. Si se conoce la
+   respuesta y el estudiante propuso una, el código le dice al modelo si es
+   correcta, y si no lo es le quita un "¡Correcto!" a la respuesta.
 3. Se arma la conversación y se consulta la cadena de proveedores.
 4. Si el modelo devuelve algo que no es el JSON esperado, se le pide de nuevo.
 5. Se revisa que la respuesta no regale el resultado. Si lo regala, se le pide
@@ -23,10 +25,10 @@ import logging
 
 from app.esquemas import MAX_PISTAS, ChatEntrada, ChatSalida, Ejercicio
 from app.servicios import buscador, modelos_ia
-from app.servicios.agente import RespuestaInvalida, armar_conversacion, interpretar_respuesta
+from app.servicios.agente import RespuestaInvalida, armar_conversacion, interpretar_respuesta, sin_felicitacion_falsa
 from app.servicios.imagenes import limpiar_y_reducir
 from app.servicios.privacidad import aviso_de_datos_ocultos, ocultar
-from app.servicios.verificador import filtra_la_respuesta
+from app.servicios.verificador import filtra_la_respuesta, revisar_propuesta
 
 registro = logging.getLogger(__name__)
 
@@ -97,7 +99,10 @@ def responder(entrada: ChatEntrada) -> ChatSalida:
     solucion = del_banco.solucion if del_banco else None
     opciones = del_banco.opciones if del_banco and del_banco.area == "Razonamiento matemático" else None
     enunciado = entrada.contexto.enunciado
-    mensajes = armar_conversacion(entrada, ejercicios_parecidos)
+    # Si se conoce la respuesta, el código juzga lo que propuso el estudiante: el modelo a
+    # veces confunde un acierto con un error (o al revés).
+    propuesta = revisar_propuesta(entrada.mensaje, enunciado, solucion, opciones)
+    mensajes = armar_conversacion(entrada, ejercicios_parecidos, propuesta)
     salida = _pedir(mensajes, enunciado)
 
     if filtra_la_respuesta(salida, entrada, solucion, opciones):
@@ -115,6 +120,9 @@ def responder(entrada: ChatEntrada) -> ChatSalida:
         if filtra_la_respuesta(salida, entrada, solucion, opciones):
             registro.warning("La segunda respuesta de %s también lo revelaba; se envía la respuesta segura.", salida.proveedor)
             salida = ChatSalida(texto=RESPUESTA_SEGURA, proveedor=salida.proveedor)
+
+    if propuesta == "incorrecta":
+        salida = salida.model_copy(update={"texto": sin_felicitacion_falsa(salida.texto, "incorrecto")})
 
     # El número de pista no se le confía al modelo: es el contador de la conversación más uno.
     if salida.pista is not None:
