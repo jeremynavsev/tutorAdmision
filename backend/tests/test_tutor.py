@@ -6,7 +6,8 @@ import io
 import pytest
 from PIL import Image
 
-from app.esquemas import ChatEntrada, Solucion
+from app.esquemas import ChatEntrada, Ejercicio, Solucion
+from app.servicios import buscador
 from app.servicios.agente import RespuestaInvalida
 from app.servicios.imagenes import ImagenInvalida
 from app.servicios.modelos_ia import SinProveedores
@@ -92,12 +93,16 @@ def test_puede_confirmar_cuando_el_estudiante_ya_acerto(modelo):
     assert len(modelo.llamadas) == 1
 
 
-def test_con_la_solucion_del_banco_tambien_bloquea(modelo):
+def test_con_la_solucion_del_banco_tambien_bloquea(modelo, monkeypatch):
     tenis = "Unas tenis costaban ₡40 000 y ahora cuestan ₡46 000. ¿En qué porcentaje aumentó?"
-    modelo.responde({"texto": "Aumentó 15 %.", "anotaciones": []}, {"texto": "¿Cuánto subió en colones?", "anotaciones": []})
-    salida = responder(
-        ChatEntrada(mensaje="decime", contexto={"enunciado": tenis}), solucion=Solucion(tipo="numero", valor="15 %")
+    del_banco = Ejercicio(
+        id="por-01", tema="Porcentajes", area="Razonamiento matemático", enunciado=tenis, opciones=[],
+        solucion=Solucion(tipo="numero", valor="15 %"), pasos=["Calcular el aumento."], errores_comunes=[],
     )
+    indice = buscador.Buscador([del_banco])
+    monkeypatch.setattr(buscador, "obtener_buscador", lambda: indice)
+    modelo.responde({"texto": "Aumentó 15 %.", "anotaciones": []}, {"texto": "¿Cuánto subió en colones?", "anotaciones": []})
+    salida = responder(ChatEntrada(mensaje="decime", contexto={"enunciado": tenis}))
     assert salida.texto == "¿Cuánto subió en colones?"
 
 

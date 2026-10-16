@@ -4,8 +4,10 @@ import json
 
 import pytest
 
+from app.config import RAIZ_BACKEND
 from app.datos import db
-from app.servicios import modelos_ia
+from app.datos.banco import leer_banco
+from app.servicios import buscador, modelos_ia
 from app.servicios.modelos_ia import RespuestaModelo, SinProveedores
 
 
@@ -14,6 +16,14 @@ def base_de_datos_en_memoria():
     """Cada prueba usa una base de datos nueva en memoria: nunca toca maestro.db."""
     db.configurar("sqlite://")
     yield
+
+
+@pytest.fixture(autouse=True)
+def banco_de_ejemplo(monkeypatch):
+    """El tutor busca en el banco de ejemplo del repo, nunca en el privado que apunte el .env."""
+    indice = buscador.Buscador(leer_banco(RAIZ_BACKEND / "ejercicios" / "banco.json"))
+    monkeypatch.setattr(buscador, "obtener_buscador", lambda: indice)
+    return indice
 
 
 @pytest.fixture

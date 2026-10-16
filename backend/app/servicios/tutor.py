@@ -6,9 +6,12 @@ Pasos de ``responder``:
    nombres completos), para que no lleguen al proveedor. Si venían en el
    mensaje, la respuesta empieza avisándole al estudiante.
    Si viene una foto, se limpia (sin metadatos, derecha y reducida).
-2. Se arma la conversación y se consulta la cadena de proveedores.
-3. Si el modelo devuelve algo que no es el JSON esperado, se le pide de nuevo.
-4. Se revisa que la respuesta no regale el resultado. Si lo regala, se le pide
+2. Se buscan en el banco los ejercicios parecidos al problema: sus pasos y
+   errores comunes van en privado en las instrucciones. Si el problema es uno
+   del banco, su clave se usa para verificar la respuesta.
+3. Se arma la conversación y se consulta la cadena de proveedores.
+4. Si el modelo devuelve algo que no es el JSON esperado, se le pide de nuevo.
+5. Se revisa que la respuesta no regale el resultado. Si lo regala, se le pide
    otra avisándole por qué; si insiste, se manda un mensaje seguro en su lugar.
 
 Errores que puede lanzar: ``ImagenInvalida`` (la foto no sirve),
@@ -19,7 +22,7 @@ modelo no dio un JSON utilizable ni al segundo intento).
 import logging
 
 from app.esquemas import MAX_PISTAS, ChatEntrada, ChatSalida, Ejercicio, Solucion
-from app.servicios import modelos_ia
+from app.servicios import buscador, modelos_ia
 from app.servicios.agente import RespuestaInvalida, armar_conversacion, interpretar_respuesta
 from app.servicios.imagenes import limpiar_y_reducir
 from app.servicios.privacidad import aviso_de_datos_ocultos, ocultar
@@ -66,16 +69,29 @@ def _sin_datos_personales(entrada: ChatEntrada) -> tuple[ChatEntrada, list[str]]
     return limpia, en_el_mensaje
 
 
-def responder(
-    entrada: ChatEntrada,
-    ejercicios_parecidos: list[Ejercicio] | None = None,
-    solucion: Solucion | None = None,
-) -> ChatSalida:
+def _consultar_banco(entrada: ChatEntrada) -> tuple[list[Ejercicio], Solucion | None]:
+    """Los ejercicios parecidos al problema y, si es uno del banco, su solución.
+
+    El problema es el de la pizarra; si todavía no hay, el mensaje (ahí suele venir copiado).
+    """
+    problema = entrada.contexto.enunciado or entrada.mensaje
+    indice = buscador.obtener_buscador()
+    parecidos = [c.ejercicio for c in indice.buscar(problema)]
+    mismo = indice.mismo_ejercicio(problema)
+    if parecidos or mismo:
+        registro.info("Banco: parecidos %s; mismo ejercicio: %s", [e.id for e in parecidos], mismo.id if mismo else "ninguno")
+    if mismo and mismo not in parecidos:
+        parecidos = [mismo, *parecidos[: buscador.PARECIDOS_POR_CONSULTA - 1]]
+    return parecidos, mismo.solucion if mismo else None
+
+
+def responder(entrada: ChatEntrada) -> ChatSalida:
     """Devuelve la respuesta del tutor al mensaje del estudiante."""
     entrada, datos_ocultos = _sin_datos_personales(entrada)
     if entrada.imagen_base64:
         entrada = entrada.model_copy(update={"imagen_base64": limpiar_y_reducir(entrada.imagen_base64)})
 
+    ejercicios_parecidos, solucion = _consultar_banco(entrada)
     enunciado = entrada.contexto.enunciado
     mensajes = armar_conversacion(entrada, ejercicios_parecidos)
     salida = _pedir(mensajes, enunciado)

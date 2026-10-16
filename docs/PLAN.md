@@ -112,8 +112,12 @@ otros archivos.
 
 ## Fase 5 — "Entrenamiento" con el banco (2–3 semanas)
 
-1. [ ] **Consulta del banco (RAG):** al recibir un problema, buscar los ejercicios más
+1. [x] **Consulta del banco (RAG):** al recibir un problema, buscar los ejercicios más
        parecidos y pasarle al modelo, en privado, sus pasos y errores comunes.
+       `servicios/buscador.py` usa TF-IDF en Python puro (sin embeddings ni otra API).
+       Si el problema es uno del banco, su clave va al verificador. Límite: compara
+       palabras, no ideas; si con más ejercicios trae parecidos que no ayudan, probar
+       embeddings.
 2. [ ] **Ejemplos en las instrucciones:** 2–3 conversaciones modelo de buena tutoría.
 3. [ ] **Evaluación automática** (empezada en la fase 3: `backend/evaluacion/`, con 10
        conversaciones y revisiones por patrones; falta ampliarla y sumar un evaluador
