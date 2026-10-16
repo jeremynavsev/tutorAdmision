@@ -101,8 +101,9 @@ otros archivos.
 - [ ] Reunir fuentes: materiales de práctica publicados por la UCR, la UNA y el TEC, y
       ejercicios originales escritos por docentes. **Revisar los derechos de uso de cada
       fuente** antes de copiarla; si no se puede, usarla solo como referencia.
-- [ ] Usar el formato de `backend/ejercicios/banco.json` y agregar etiquetas: universidad,
-      área (razonamiento matemático o verbal), tema y dificultad.
+- [x] Usar el formato de `backend/ejercicios/banco.json` y agregar etiquetas: universidad,
+      área (razonamiento matemático o verbal), tema y dificultad. La universidad queda
+      vacía hasta confirmar de qué examen sale cada ejercicio.
 - [ ] Revisión humana de cada ejercicio; verificar la solución con SymPy cuando se pueda.
 - [ ] Meta inicial: 150–300 ejercicios bien revisados.
 

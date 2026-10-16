@@ -2,7 +2,7 @@
   {
     "id": "mat-001",
     "tema": "Ecuaciones lineales",
-    "area": "Matemática",
+    "area": "Razonamiento matemático",
     "enunciado": "Si 3x + 5 = 20, ¿cuál es el valor de x?",
     "opciones": [
       "3",
@@ -22,12 +22,13 @@
       "Sumar 5 en lugar de restarlo y obtener 3x = 25.",
       "Restar 3 en lugar de dividir entre 3 en el último paso."
     ],
-    "fuente": "Ejemplo inventado"
+    "fuente": "Ejemplo inventado",
+    "dificultad": "baja"
   },
   {
     "id": "raz-001",
     "tema": "Sucesiones",
-    "area": "Razonamiento",
+    "area": "Razonamiento matemático",
     "enunciado": "¿Qué número sigue en la sucesión 2, 6, 12, 20, 30, …?",
     "opciones": [
       "36",
@@ -48,6 +49,7 @@
       "Suponer una diferencia constante y responder 40.",
       "Sumar la última diferencia (10) otra vez y responder 40."
     ],
-    "fuente": "Ejemplo inventado"
+    "fuente": "Ejemplo inventado",
+    "dificultad": "media"
   }
 ]

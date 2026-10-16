@@ -12,7 +12,7 @@ from app.esquemas import Ejercicio
 EJERCICIO = {
     "id": "paa-01",
     "tema": "Lógica",
-    "area": "Razonamiento",
+    "area": "Razonamiento matemático",
     "enunciado": "¿Cuál afirmación sucederá con certeza?",
     "opciones": ["uno", "dos", "tres", "cuatro"],
     "solucion": {"tipo": "opcion", "valor": "D"},
@@ -41,6 +41,20 @@ def test_rechaza_una_clave_que_no_es_una_opcion(tmp_path, clave):
     malo = {**EJERCICIO, "solucion": {"tipo": "opcion", "valor": clave}}
     with pytest.raises(BancoInvalido, match="paa-01"):
         leer_banco(escribir(tmp_path, [malo]))
+
+
+@pytest.mark.parametrize(
+    ("campo", "valor"),
+    [("area", "Matemática"), ("universidades", ["UNED"]), ("dificultad", "difícil"), ("tema", "")],
+)
+def test_rechaza_etiquetas_que_no_existen(tmp_path, campo, valor):
+    with pytest.raises(BancoInvalido, match=f"paa-01.*{campo}"):
+        leer_banco(escribir(tmp_path, [{**EJERCICIO, campo: valor}]))
+
+
+def test_las_etiquetas_opcionales_tienen_valor_por_defecto(tmp_path):
+    ejercicio = leer_banco(escribir(tmp_path, [EJERCICIO]))[0]
+    assert ejercicio.universidades == [] and ejercicio.dificultad is None
 
 
 def test_rechaza_ids_repetidos(tmp_path):

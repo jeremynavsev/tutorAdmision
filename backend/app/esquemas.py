@@ -18,12 +18,20 @@ class Solucion(BaseModel):
     valor: str
 
 
+Area = Literal["Razonamiento matemático", "Razonamiento verbal"]
+Universidad = Literal["UCR", "UNA", "TEC"]
+Dificultad = Literal["baja", "media", "alta"]
+
+
 class Ejercicio(BaseModel):
     """Ejercicio del banco. El banco real es privado (ver ``app/datos/banco.py``)."""
 
     id: str = Field(min_length=1)
-    tema: str
-    area: str
+    tema: str = Field(min_length=1)
+    area: Area
+    universidades: list[Universidad] = []
+    """Exámenes en los que aparece este tipo de ejercicio. Vacía si todavía no se sabe."""
+    dificultad: Dificultad | None = None
     enunciado: str = Field(min_length=1)
     opciones: list[str]
     """Las opciones en orden: la primera es la A, la segunda la B, etc."""
