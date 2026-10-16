@@ -7,14 +7,6 @@ import type { ChatEntradaApi, ChatSalidaApi } from "./contrato";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
 
-export type Ejercicio = {
-  id: string;
-  tema: string;
-  area: string;
-  enunciado: string;
-  opciones: string[];
-};
-
 /** Segundos máximos de espera: una foto puede pasar por varios proveedores antes de responder. */
 const TIEMPO_MAXIMO_MS = 90_000;
 
@@ -65,11 +57,6 @@ async function pedir<T>(ruta: string, opciones?: RequestInit): Promise<T> {
 /** GET /api/salud — indica si el backend está en línea. */
 export function revisarSalud(): Promise<{ ok: boolean }> {
   return pedir("/api/salud");
-}
-
-/** GET /api/ejercicios — lista de ejercicios sin solución. */
-export function obtenerEjercicios(): Promise<Ejercicio[]> {
-  return pedir("/api/ejercicios");
 }
 
 /** POST /api/sesiones — crea la sesión anónima después de aceptar el aviso. */

@@ -19,26 +19,28 @@ class Solucion(BaseModel):
 
 
 class Ejercicio(BaseModel):
-    """Ejercicio del banco tal como se guarda en ``ejercicios/banco.json``."""
+    """Ejercicio del banco. El banco real es privado (ver ``app/datos/banco.py``)."""
 
-    id: str
+    id: str = Field(min_length=1)
     tema: str
     area: str
-    enunciado: str
+    enunciado: str = Field(min_length=1)
     opciones: list[str]
+    """Las opciones en orden: la primera es la A, la segunda la B, etc."""
     solucion: Solucion
     pasos: list[str]
     errores_comunes: list[str]
+    fuente: str | None = None
+    """De dónde salió el ejercicio (documento e ítem), para poder revisarlo."""
 
-
-class EjercicioPublico(BaseModel):
-    """Ejercicio sin solución ni pasos: lo que ve el estudiante."""
-
-    id: str
-    tema: str
-    area: str
-    enunciado: str
-    opciones: list[str]
+    @model_validator(mode="after")
+    def _la_clave_existe(self) -> "Ejercicio":
+        if self.solucion.tipo == "opcion":
+            letras = "ABCDEFGH"[: len(self.opciones)]
+            # Una sola letra: el texto vacío "está contenido" en cualquier texto y pasaría.
+            if not letras or len(self.solucion.valor) != 1 or self.solucion.valor not in letras:
+                raise ValueError(f"La clave '{self.solucion.valor}' no es una de las opciones ({', '.join(letras) or 'no hay opciones'}).")
+        return self
 
 
 class SesionEntrada(BaseModel):

@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import obtener_configuracion
 from app.datos import db
-from app.rutas import chat, ejercicios, salud, sesiones
+from app.rutas import chat, salud, sesiones
 
 config = obtener_configuracion()
 
@@ -40,6 +40,5 @@ app.add_middleware(
 )
 
 app.include_router(salud.router)
-app.include_router(ejercicios.router)
 app.include_router(sesiones.router)
 app.include_router(chat.router)

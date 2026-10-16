@@ -29,11 +29,12 @@ prototipo/
 │   │   ├── main.py          Crea la app, CORS y registra los routers
 │   │   ├── config.py        Lee variables de entorno y el .env (sin dependencias extra)
 │   │   ├── esquemas.py      Modelos Pydantic de entrada y salida
-│   │   ├── rutas/           salud, ejercicios, sesiones, chat
+│   │   ├── rutas/           salud, sesiones, chat
 │   │   ├── servicios/       tutor (une todo), agente, modelos_ia, verificador,
 │   │   │                    imagenes, limites, privacidad
-│   │   └── datos/db.py      SQLAlchemy: SQLite local, PostgreSQL (Neon) en producción
-│   ├── ejercicios/banco.json  Banco de ejercicios de ejemplo
+│   │   └── datos/           db.py (SQLite local, PostgreSQL en producción) y banco.py
+│   ├── ejercicios/banco.json  Banco de ejemplo (2 ejercicios inventados)
+│   ├── ejercicios/privado/  Banco real: privado, git lo ignora
 │   ├── tests/               Pruebas con pytest
 │   ├── evaluacion/          Conversaciones de prueba para medir la calidad del tutor
 │   ├── requirements.txt     Dependencias de producción (versiones fijas)
@@ -68,7 +69,6 @@ prototipo/
 | Método | Ruta              | Respuesta actual                                      |
 | ------ | ----------------- | ----------------------------------------------------- |
 | GET    | `/api/salud`      | `{"ok": true}`                                        |
-| GET    | `/api/ejercicios` | Dos ejercicios de ejemplo (sin solución)              |
 | POST   | `/api/sesiones`   | Crea una sesión anónima y devuelve su `sesion_id`     |
 | POST   | `/api/chat`       | La respuesta del tutor (IA real)                      |
 

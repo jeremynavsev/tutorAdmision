@@ -27,3 +27,6 @@ web/next-env.d.ts
 
 # Reportes de la evaluación del tutor (se generan al correrla)
 backend/evaluacion/resultados/
+
+# Banco de ejercicios real: privado, nunca se sube al repositorio
+backend/ejercicios/privado/
