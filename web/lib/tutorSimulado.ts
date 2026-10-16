@@ -2,8 +2,8 @@
  * Tutor SIMULADO de MAEstro.
  *
  * Imita al tutor real mientras el chat no está conectado al backend. No trae
- * ejercicios cargados: la persona manda su problema (de matemática o
- * razonamiento, como en las pruebas de admisión de la UCR, la UNA y el TEC), el
+ * ejercicios cargados: la persona manda su problema (de razonamiento
+ * matemático o verbal, como en la Prueba de Aptitud Académica de la UCR y la UNA), el
  * tutor lo copia en la pizarra, encierra los datos y guía con tres niveles de
  * pista, sin dar nunca la respuesta.
  *

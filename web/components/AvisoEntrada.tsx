@@ -35,8 +35,8 @@ export default function AvisoEntrada({ abierto, obligatorio, onAceptar }: Props)
         <Logo ancho={150} />
         <h2 id="titulo-aviso">Antes de practicar</h2>
         <p>
-          MAEstro es un tutor de inteligencia artificial gratuito para preparar las pruebas de admisión de la UCR,
-          la UNA y el TEC.
+          MAEstro es un tutor de inteligencia artificial gratuito para preparar la Prueba de Aptitud Académica de
+          la UCR y la UNA.
         </p>
         <ul>
           <li>No te da la respuesta: te hace preguntas y te da pistas para que llegués vos.</li>

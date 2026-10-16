@@ -1,8 +1,8 @@
 # MAEstro
 
 Tutor de inteligencia artificial **gratuito** que ayuda a estudiantes de colegio de la
-Región Brunca de Costa Rica a prepararse para las pruebas de admisión de la **UCR**, la
-**UNA** y el **TEC**.
+Región Brunca de Costa Rica a prepararse para la Prueba de Aptitud Académica de la **UCR**
+y la **UNA**.
 
 MAEstro guía con preguntas y pistas graduales: **nunca da la respuesta**. La idea es que el
 estudiante llegue solo a la solución y aprenda el razonamiento, no que copie un resultado.

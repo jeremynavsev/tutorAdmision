@@ -19,7 +19,7 @@ class Solucion(BaseModel):
 
 
 Area = Literal["Razonamiento matemático", "Razonamiento verbal"]
-Universidad = Literal["UCR", "UNA", "TEC"]
+Universidad = Literal["UCR", "UNA"]
 Dificultad = Literal["baja", "media", "alta"]
 
 

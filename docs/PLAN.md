@@ -1,7 +1,7 @@
 # Plan de desarrollo de MAEstro
 
 Desde el prototipo (interfaz completa con tutor simulado) hasta un tutor que use un banco
-de ejercicios de admisión de la UCR, la UNA y el TEC.
+de ejercicios de la Prueba de Aptitud Académica de la UCR y la UNA.
 
 **Idea central:** "entrenar" no significa reentrenar un modelo desde el principio. Primero
 se hace que el modelo consulte un banco de ejercicios revisados mientras conversa (RAG) y
@@ -98,7 +98,7 @@ otros archivos.
 
 ## Fase 4 — Banco de ejercicios (2–4 semanas, en paralelo con las fases 1–3)
 
-- [ ] Reunir fuentes: materiales de práctica publicados por la UCR, la UNA y el TEC, y
+- [ ] Reunir fuentes: materiales de práctica publicados por la UCR y la UNA, y
       ejercicios originales escritos por docentes. **Revisar los derechos de uso de cada
       fuente** antes de copiarla; si no se puede, usarla solo como referencia.
 - [x] Usar el formato de `backend/ejercicios/banco.json` y agregar etiquetas: universidad,

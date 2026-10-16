@@ -27,7 +27,7 @@ const caveat = Caveat({
 export const metadata: Metadata = {
   title: "MAEstro — tutor gratuito para la prueba de admisión",
   description:
-    "Tutor de IA gratuito que te guía con pistas para las pruebas de admisión de la UCR, la UNA y el TEC.",
+    "Tutor de IA gratuito que te guía con pistas para la Prueba de Aptitud Académica de la UCR y la UNA.",
 };
 
 export const viewport: Viewport = {

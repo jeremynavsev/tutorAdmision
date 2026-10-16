@@ -13,8 +13,8 @@ export default function Bienvenida() {
       <Logo ancho={190} />
       <h1>¿Qué problema vamos a resolver hoy?</h1>
       <p className="bienvenida-texto">
-        Traé un ejercicio de matemática o de razonamiento, como los de la prueba de admisión de la UCR, la UNA o el
-        TEC.
+        Traé un ejercicio de razonamiento matemático o verbal, como los de la Prueba de Aptitud Académica de la UCR
+        y la UNA.
       </p>
       <ol className="bienvenida-pasos">
         {PASOS.map((paso, i) => (

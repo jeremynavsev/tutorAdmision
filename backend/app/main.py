@@ -25,7 +25,7 @@ async def ciclo_de_vida(app: FastAPI):
 
 app = FastAPI(
     title="MAEstro",
-    description="Tutor de IA que guía con pistas para las pruebas de admisión de la UCR, la UNA y el TEC.",
+    description="Tutor de IA que guía con pistas para la Prueba de Aptitud Académica de la UCR y la UNA.",
     version="0.1.0",
     lifespan=ciclo_de_vida,
 )
