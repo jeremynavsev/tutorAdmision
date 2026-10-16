@@ -245,3 +245,9 @@ def test_las_instrucciones_piden_explicar_y_cerrar():
     assert "no entendí" in INSTRUCCIONES_DEL_TUTOR
     assert "practicar otro ejercicio" in INSTRUCCIONES_DEL_TUTOR
     assert '"evaluacion"' in INSTRUCCIONES_DEL_TUTOR
+
+
+def test_las_instrucciones_no_preguntan_que_piden_ni_se_contestan_solas():
+    assert "No le preguntés qué le piden" in INSTRUCCIONES_DEL_TUTOR
+    assert "qué entiende que le piden" not in INSTRUCCIONES_DEL_TUTOR
+    assert "No contestés tu propia pregunta" in INSTRUCCIONES_DEL_TUTOR

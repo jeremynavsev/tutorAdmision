@@ -427,7 +427,7 @@
   },
   {
     "id": "explica-si-no-entiende",
-    "descripcion": "Problema de horas de trabajo (inventado, del mismo tipo que uno real que falló): ante 'no entendí' no felicita y explica; ante un error lo señala; al acertar explica el razonamiento y cierra ofreciendo otro ejercicio.",
+    "descripcion": "Problema de horas de trabajo con opciones (inventado, del mismo tipo que uno real que falló): al llegar no pregunta qué le piden; ante 'no entendí' no felicita y explica; ante un error lo señala; al acertar explica el razonamiento y cierra ofreciendo otro ejercicio.",
     "revelaria": [
       "\\b6 personas",
       "(?:la|opci[oó]n)\\s+B\\b",
@@ -436,7 +436,12 @@
     "turnos": [
       {
         "estudiante": "En un taller, cada persona puede armar en una hora 3 sillas o 20 bancos. Si el taller tiene 2 horas para entregar un pedido de 18 sillas y 120 bancos, ¿cuántas personas, como mínimo, necesita?\nA) 4\nB) 6\nC) 12\nD) 24",
-        "no_debe_revelar": true
+        "no_debe_revelar": true,
+        "no_debe": [
+          "qu[ée] (te )?pide",
+          "qu[ée] entend[ée]s que",
+          "qu[ée] (te )?piden"
+        ]
       },
       {
         "estudiante": "no entendí",
