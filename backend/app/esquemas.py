@@ -40,6 +40,10 @@ class Ejercicio(BaseModel):
     errores_comunes: list[str]
     fuente: str | None = None
     """De dónde salió el ejercicio (documento e ítem), para poder revisarlo."""
+    comprobacion: str | None = None
+    """Cálculo aparte que da la respuesta, para verificar la clave con SymPy (ver ``app/datos/revision.py``)."""
+    revisado: bool = False
+    """Si una persona ya revisó el ejercicio completo: enunciado, clave, pasos y errores comunes."""
 
     @model_validator(mode="after")
     def _la_clave_existe(self) -> "Ejercicio":

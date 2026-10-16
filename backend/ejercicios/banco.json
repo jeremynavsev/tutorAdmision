@@ -23,7 +23,8 @@
       "Restar 3 en lugar de dividir entre 3 en el último paso."
     ],
     "fuente": "Ejemplo inventado",
-    "dificultad": "baja"
+    "dificultad": "baja",
+    "comprobacion": "(20 - 5)/3"
   },
   {
     "id": "raz-001",
@@ -50,6 +51,7 @@
       "Sumar la última diferencia (10) otra vez y responder 40."
     ],
     "fuente": "Ejemplo inventado",
-    "dificultad": "media"
+    "dificultad": "media",
+    "comprobacion": "30 + 10 + 2"
   }
 ]

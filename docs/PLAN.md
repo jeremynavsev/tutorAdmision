@@ -105,6 +105,9 @@ otros archivos.
       área (razonamiento matemático o verbal), tema y dificultad. La universidad queda
       vacía hasta confirmar de qué examen sale cada ejercicio.
 - [ ] Revisión humana de cada ejercicio; verificar la solución con SymPy cuando se pueda.
+      `python -m app.datos.revision` calcula la `comprobacion` de cada ejercicio, la compara
+      con la clave y lista los que faltan por revisar (`revisado: true` cuando una persona
+      ya lo revisó).
 - [ ] Meta inicial: 150–300 ejercicios bien revisados.
 
 ## Fase 5 — "Entrenamiento" con el banco (2–3 semanas)
