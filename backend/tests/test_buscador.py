@@ -218,3 +218,12 @@ def test_en_un_ejercicio_verbal_solo_cuenta_la_letra(modelo, monkeypatch):
     modelo.responde({"texto": "Leé de nuevo la proposición 1. ¿Qué dice?", "anotaciones": []})
     salida = responder(ChatEntrada(mensaje="ayuda", contexto={"enunciado": LECTURA.enunciado}))
     assert salida.texto == "Leé de nuevo la proposición 1. ¿Qué dice?"
+
+
+def test_al_pegar_el_problema_con_opciones_el_tutor_no_recibe_un_falso_acierto(modelo, monkeypatch):
+    con_valores = ejercicio("valores", BILLETERA.enunciado, clave="C", opciones=("200 colones", "100 colones", "50 colones", "25 colones"))
+    monkeypatch.setattr(buscador, "obtener_buscador", lambda: Buscador([con_valores]))
+    modelo.responde({"texto": "¿Cuánto le queda después del primer sobrino?", "anotaciones": []})
+    pegado = BILLETERA.enunciado + "\n" + "\n".join(f"{l}) {o}" for l, o in zip("ABCD", con_valores.opciones))
+    responder(ChatEntrada(mensaje=pegado))
+    assert "Revisión automática" not in modelo.llamadas[0][0]["content"]

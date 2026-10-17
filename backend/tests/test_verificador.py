@@ -311,3 +311,21 @@ def test_revisa_lo_que_propone_en_un_ejercicio_del_banco(mensaje, veredicto):
 
 def test_sin_respuesta_conocida_no_opina():
     assert revisar_propuesta("10", "¿Cuántos empleados necesita la fábrica como mínimo?") is None
+
+
+# ---------- El problema pegado con sus opciones ----------
+
+PEGADO = f"{SOBRINOS}\nA) 200 gapes\nB) 100 gapes\nC) 50 gapes\nD) 25 gapes"
+
+
+def test_el_problema_pegado_no_es_una_propuesta():
+    assert revisar_propuesta(PEGADO, None, CLAVE_C, OPCIONES_SOBRINOS) is None
+    assert revisar_propuesta(PEGADO.replace("\n", " "), None, CLAVE_C, OPCIONES_SOBRINOS) is None
+
+
+def test_el_problema_pegado_no_desactiva_el_bloqueo():
+    # Las opciones traen "50 gapes", pero eso no quiere decir que el estudiante lo haya dicho.
+    entrada_ = ChatEntrada(mensaje="no entiendo", historial=[{"autor": "estudiante", "texto": PEGADO}], contexto={"enunciado": SOBRINOS})
+    assert filtra_la_respuesta(ChatSalida(texto="Al cuarto le dio 50 gapes."), entrada_, CLAVE_C, OPCIONES_SOBRINOS)
+    primera = ChatEntrada(mensaje=PEGADO)
+    assert filtra_la_respuesta(ChatSalida(texto="¡Exacto! Le dio 50 gapes."), primera, CLAVE_C, OPCIONES_SOBRINOS)

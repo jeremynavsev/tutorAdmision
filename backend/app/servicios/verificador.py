@@ -329,12 +329,27 @@ def es_equivalente(propuesta: str, esperada: Esperada) -> bool:
     return any(_coincide(hallado, esperada) for hallado in _numeros(propuesta))
 
 
+_MARCA_DE_OPCION = re.compile(r"(?:^|\s)\(?[A-E]\)", re.MULTILINE)
+
+
+def es_el_problema(dicho: str) -> bool:
+    """Si el mensaje es el problema pegado con sus opciones ("A) 30 B) 36…").
+
+    Ahí aparece el valor de la respuesta entre las opciones, pero el estudiante
+    todavía no propuso nada.
+    """
+    return len(_MARCA_DE_OPCION.findall(dicho)) >= 2
+
+
 def _dice_la_respuesta(dicho: str, esperada: Esperada, enunciado: str | None) -> bool:
     """Si lo que escribió el estudiante trae la respuesta final.
 
     Se usa la misma regla que para el tutor: un número que también es dato del
-    problema no cuenta, salvo que lo presente como resultado.
+    problema no cuenta, salvo que lo presente como resultado. El problema pegado
+    con sus opciones tampoco cuenta.
     """
+    if es_el_problema(dicho):
+        return False
     solo_la_respuesta = len(dicho.strip()) <= 12 and es_equivalente(dicho, esperada)
     return solo_la_respuesta or revela_solucion(dicho, esperada, enunciado)
 
