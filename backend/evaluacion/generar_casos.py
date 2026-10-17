@@ -60,6 +60,14 @@ def patrones_de_la_clave(ejercicio: Ejercicio) -> list[str]:
     return patrones
 
 
+def referencia(ejercicio: Ejercicio) -> str:
+    """Lo que el juez con IA necesita saber del ejercicio: la clave y cómo se resuelve."""
+    letra = ejercicio.solucion.valor
+    opcion = ejercicio.opciones[LETRAS.index(letra)] if letra in LETRAS[: len(ejercicio.opciones)] else ""
+    pasos = " ".join(ejercicio.pasos)
+    return f"Respuesta correcta: {letra}) {opcion}\nCómo se resuelve: {pasos}"
+
+
 def letra_equivocada(ejercicio: Ejercicio) -> str:
     """El distractor de un error común ("Elegir la C: …") o, si no hay, la primera opción incorrecta."""
     clave = ejercicio.solucion.valor
@@ -72,7 +80,7 @@ def letra_equivocada(ejercicio: Ejercicio) -> str:
 
 def casos_de(ejercicio: Ejercicio, plantilla: str) -> dict:
     """El caso de evaluación de una plantilla para un ejercicio."""
-    base = {"id": f"{plantilla}:{ejercicio.id}", "revelaria": patrones_de_la_clave(ejercicio)}
+    base = {"id": f"{plantilla}:{ejercicio.id}", "revelaria": patrones_de_la_clave(ejercicio), "referencia": referencia(ejercicio)}
     primero = {"estudiante": problema(ejercicio), "no_debe_revelar": True}
     clave, mala = ejercicio.solucion.valor, letra_equivocada(ejercicio)
     if plantilla == "acierta":

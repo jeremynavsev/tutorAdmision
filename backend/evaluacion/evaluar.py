@@ -17,6 +17,7 @@ Uso, desde ``backend/``:
     .venv/bin/python -m evaluacion.evaluar --caso no-se,otra-materia  # solo esos
     .venv/bin/python -m evaluacion.evaluar --conjunto banco --muestra 10  # 10 al azar del banco
     .venv/bin/python -m evaluacion.evaluar --proveedor groq  # solo Groq, para comparar parejo
+    .venv/bin/python -m evaluacion.evaluar --juez gemini     # además, un juez con IA (ver juez.py)
 
 La muestra usa una semilla fija (``--semilla``), así que repetirla da los mismos
 casos: sirve para comparar dos versiones del tutor sin gastar la cuota de todos.
@@ -45,6 +46,7 @@ from app.esquemas import AnotacionEnunciado, ChatEntrada, ChatSalida
 from app.servicios import agente, modelos_ia, tutor
 from app.servicios.modelos_ia import Proveedor, SinProveedores
 from app.servicios.verificador import filtra_la_respuesta
+from evaluacion import juez
 
 CARPETA = Path(__file__).resolve().parent
 
@@ -73,6 +75,8 @@ class Caso(BaseModel):
     turnos: list[Turno]
     revelaria: list[str] = []
     """Patrones que delatan la respuesta final de este problema."""
+    referencia: str | None = None
+    """Clave y pasos del ejercicio, para el juez con IA (solo en los casos del banco)."""
 
 
 RUTA_CASOS_PUBLICOS = CARPETA / "casos.json"
@@ -295,6 +299,9 @@ def main(argumentos: list[str] | None = None) -> int:
     )
     opciones.add_argument("--muestra", type=int, help="Correr solo esta cantidad de casos, elegidos al azar.")
     opciones.add_argument("--semilla", type=int, default=2026, help="Semilla de la muestra.")
+    opciones.add_argument(
+        "--juez", help='Calificar además con un juez de IA de este proveedor ("gemini", "groq" o un modelo). Una consulta por caso.'
+    )
     opciones.add_argument("--pausa", type=float, default=4.0, help="Segundos entre turnos, para no agotar la cuota.")
     opciones.add_argument(
         "--proveedor",
@@ -320,9 +327,15 @@ def main(argumentos: list[str] | None = None) -> int:
         nombres = ", ".join(p.etiqueta for p in modelos_ia.proveedores_disponibles()) or "ninguno"
         print(f"No hay ningún proveedor «{args.proveedor}» con llave. Disponibles: {nombres}.")
         return 2
+    jueces = elegir_proveedores(modelos_ia.proveedores_disponibles(), args.juez) if args.juez else []
+    if args.juez and not jueces:
+        print(f"No hay ningún proveedor «{args.juez}» con llave para el juez.")
+        return 2
     completar_original = modelos_ia.completar
     modelos_ia.completar = lambda mensajes, **kw: completar_original(mensajes, **{"proveedores": proveedores, **kw})
     print("Proveedores: " + " → ".join(p.etiqueta for p in proveedores), flush=True)
+    if jueces:
+        print("Juez: " + " → ".join(p.etiqueta for p in jueces), flush=True)
 
     resultados: dict[str, list[ResultadoTurno]] = {}
     for caso in elegidos:
@@ -332,6 +345,10 @@ def main(argumentos: list[str] | None = None) -> int:
         except SinProveedores as error:
             print(f"  sin respuesta de los proveedores: {error}", flush=True)
         else:
+            if jueces:
+                turnos = [(r.estudiante, r.texto) for r in resultados[caso.id]]
+                for r, calificaciones in zip(resultados[caso.id], juez.juzgar(turnos, caso.referencia, jueces)):
+                    r.revisiones += [Revision(c.nombre, c.paso, c.detalle) for c in calificaciones]
             fallas = [rev for r in resultados[caso.id] for rev in r.revisiones if not rev.paso]
             print(f"  {'✓ todo bien' if not fallas else f'✗ {len(fallas)} revisiones fallaron'}", flush=True)
 
