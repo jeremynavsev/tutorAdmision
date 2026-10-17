@@ -227,3 +227,20 @@ def test_al_pegar_el_problema_con_opciones_el_tutor_no_recibe_un_falso_acierto(m
     pegado = BILLETERA.enunciado + "\n" + "\n".join(f"{l}) {o}" for l, o in zip("ABCD", con_valores.opciones))
     responder(ChatEntrada(mensaje=pegado))
     assert "Revisión automática" not in modelo.llamadas[0][0]["content"]
+
+
+def test_un_paso_intermedio_igual_a_la_respuesta_no_cierra_el_ejercicio(modelo, monkeypatch):
+    enunciado = (
+        "En una fábrica cada empleado puede armar, en una hora, 2 cajas grandes o 35 pequeñas. Si la fábrica "
+        "dispone de 3 horas para un pedido de 20 cajas grandes y 700 pequeñas, ¿cuántos empleados, como mínimo, necesita?"
+    )
+    cajas = ejercicio("cajas", enunciado, clave="B", opciones=("9", "10", "20", "30"))
+    monkeypatch.setattr(buscador, "obtener_buscador", lambda: Buscador([cajas]))
+    modelo.responde(
+        {"texto": "¡Excelente! 30 horas entre 3: se necesitan 10 empleados (opción B).", "anotaciones": []},
+        {"texto": "¡Bien! ¿Y cuántas horas de trabajo piden las pequeñas?", "anotaciones": []},
+    )
+    historial = [{"autor": "estudiante", "texto": enunciado + "\nA) 9\nB) 10\nC) 20\nD) 30"}, {"autor": "tutor", "texto": "¿Cuántas horas piden las grandes?"}]
+    salida = responder(ChatEntrada(mensaje="en 10 horas", historial=historial, contexto={"enunciado": enunciado}))
+    assert "Revisión automática" not in modelo.llamadas[0][0]["content"]  # no le dice que acertó la final
+    assert salida.texto == "¡Bien! ¿Y cuántas horas de trabajo piden las pequeñas?"  # la que cerraba se bloqueó

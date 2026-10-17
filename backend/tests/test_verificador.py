@@ -273,9 +273,17 @@ def test_deja_pasar_los_valores_de_las_otras_opciones_y_los_pasos():
     assert not filtra_la_respuesta(ChatSalida(texto="¿Por qué 100 no puede ser?"), pregunta, CLAVE_C, OPCIONES_SOBRINOS)
 
 
-def test_puede_confirmar_si_el_estudiante_dijo_el_valor():
+def test_puede_confirmar_si_el_estudiante_dijo_el_valor_como_respuesta():
     confirmacion = ChatSalida(texto="¡Eso! 50 gapes, la C.")
-    assert not filtra_la_respuesta(confirmacion, entrada("me dio 50", enunciado=SOBRINOS), CLAVE_C, OPCIONES_SOBRINOS)
+    assert not filtra_la_respuesta(confirmacion, entrada("me dio 50 gapes", enunciado=SOBRINOS), CLAVE_C, OPCIONES_SOBRINOS)
+    assert not filtra_la_respuesta(confirmacion, entrada("la C", enunciado=SOBRINOS), CLAVE_C, OPCIONES_SOBRINOS)
+
+
+def test_un_numero_suelto_no_autoriza_a_dar_la_letra():
+    # "50" solo puede ser un paso intermedio: el tutor puede repetirlo, pero no cerrar con la letra.
+    pregunta = entrada("50", enunciado=SOBRINOS)
+    assert not filtra_la_respuesta(ChatSalida(texto="¿50 qué? Contame qué calculaste."), pregunta, CLAVE_C, OPCIONES_SOBRINOS)
+    assert filtra_la_respuesta(ChatSalida(texto="¡Exacto! Es la C."), pregunta, CLAVE_C, OPCIONES_SOBRINOS)
 
 
 # ---------- revisar_propuesta ----------
@@ -303,7 +311,7 @@ def test_revisa_lo_que_propone_en_una_ecuacion(mensaje, veredicto):
 
 @pytest.mark.parametrize(
     ("mensaje", "veredicto"),
-    [("la C", "correcta"), ("C", "correcta"), ("50", "correcta"), ("¿B?", "incorrecta"), ("opción A", "incorrecta"), ("100", None)],
+    [("la C", "correcta"), ("C", "correcta"), ("50 gapes", "correcta"), ("50", None), ("¿B?", "incorrecta"), ("opción A", "incorrecta"), ("100", None)],
 )
 def test_revisa_lo_que_propone_en_un_ejercicio_del_banco(mensaje, veredicto):
     assert revisar_propuesta(mensaje, SOBRINOS, CLAVE_C, OPCIONES_SOBRINOS) == veredicto
@@ -329,3 +337,29 @@ def test_el_problema_pegado_no_desactiva_el_bloqueo():
     assert filtra_la_respuesta(ChatSalida(texto="Al cuarto le dio 50 gapes."), entrada_, CLAVE_C, OPCIONES_SOBRINOS)
     primera = ChatEntrada(mensaje=PEGADO)
     assert filtra_la_respuesta(ChatSalida(texto="¡Exacto! Le dio 50 gapes."), primera, CLAVE_C, OPCIONES_SOBRINOS)
+
+
+# ---------- Un paso intermedio con el mismo número que la respuesta ----------
+
+CAJAS = (
+    "En una fábrica cada empleado puede armar, en una hora, 2 cajas grandes o 35 pequeñas. Si la fábrica "
+    "dispone de 3 horas para un pedido de 20 cajas grandes y 700 pequeñas, ¿cuántos empleados, como mínimo, necesita?"
+)
+OPCIONES_CAJAS = ["9", "10", "20", "30"]
+CLAVE_B = Solucion(tipo="opcion", valor="B")
+SE_ADELANTA = "¡Excelente! Son 10 horas para las grandes y 20 para las pequeñas: 30 entre 3, se necesitan 10 empleados (opción B)."
+
+
+@pytest.mark.parametrize(
+    ("mensaje", "veredicto"),
+    [("en 10 horas", None), ("10", None), ("son 10 empleados", "correcta"), ("la B", "correcta"), ("entonces la respuesta es 10", "correcta")],
+)
+def test_el_paso_intermedio_no_cuenta_como_respuesta_final(mensaje, veredicto):
+    assert revisar_propuesta(mensaje, CAJAS, CLAVE_B, OPCIONES_CAJAS) == veredicto
+
+
+def test_tras_un_paso_intermedio_el_tutor_no_puede_cerrar_el_ejercicio():
+    pregunta = entrada("en 10 horas", enunciado=CAJAS)
+    assert filtra_la_respuesta(ChatSalida(texto=SE_ADELANTA), pregunta, CLAVE_B, OPCIONES_CAJAS)
+    sigue = ChatSalida(texto="¡Bien! 10 horas para las grandes. ¿Y cuántas horas de trabajo piden las pequeñas?")
+    assert not filtra_la_respuesta(sigue, pregunta, CLAVE_B, OPCIONES_CAJAS)

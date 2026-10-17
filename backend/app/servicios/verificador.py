@@ -19,6 +19,7 @@ suelta como incógnita y operadores) y se limita su tamaño.
 """
 
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from fractions import Fraction
 from typing import Literal
@@ -59,6 +60,10 @@ class Esperada:
 
     letra: str | None = None
     """Letra de la opción correcta, si es de selección."""
+
+    unidades: frozenset[str] = field(default=frozenset(), compare=False)
+    """Raíces de lo que se cuenta en la respuesta ("emplead", "gape"). Con unidad, un
+    número suelto puede ser un paso intermedio ("10 horas" cuando preguntan por empleados)."""
 
 
 # ---------- Lectura de números ----------
@@ -232,6 +237,34 @@ def _valor_de_la_opcion(opcion: str) -> Fraction | None:
     return Fraction(int(valor.p), int(valor.q))
 
 
+_NO_SON_UNIDAD = {"de", "del", "la", "las", "los", "el", "y", "o", "en", "por", "a", "un", "una", "como", "minimo", "maximo"}
+# "¿cuántos empleados…?", "¿cuántas de las personas…?". Solo en plural: "¿cuánto vale…?"
+# o "¿cuánto le dio…?" no nombran lo que se cuenta.
+_LO_QUE_SE_CUENTA = re.compile(rf"cu[aá]nt[oa]s\s+(?:de\s+(?:los|las)\s+)?([{_LETRAS}]+)", re.IGNORECASE)
+
+
+def _raiz(palabra: str) -> str:
+    """Una forma común para singular y plural, sin tildes: "empleados" y "empleado" → "emplead"."""
+    p = unicodedata.normalize("NFD", palabra.lower())
+    p = "".join(c for c in p if unicodedata.category(c) != "Mn")
+    for final in ("es", "s", "o", "a"):
+        if len(p) > 4 and p.endswith(final):
+            return p[: -len(final)]
+    return p
+
+
+def _unidades_de(texto: str | None) -> frozenset[str]:
+    """Las palabras de una opción que es un valor: en "50 gapes", "gape"."""
+    palabras = re.findall(rf"[{_LETRAS}]+", texto or "", re.IGNORECASE)
+    return frozenset(_raiz(p) for p in palabras if p.lower() not in _NO_SON_UNIDAD)
+
+
+def _unidades_de_la_pregunta(enunciado: str | None) -> frozenset[str]:
+    """Lo que pregunta el problema: en "¿cuántos empleados…?", "emplead"."""
+    hallados = _LO_QUE_SE_CUENTA.findall(enunciado or "")
+    return frozenset({_raiz(hallados[-1])}) if hallados and hallados[-1].lower() not in _NO_SON_UNIDAD else frozenset()
+
+
 def respuesta_esperada(
     enunciado: str | None, solucion: Solucion | None = None, opciones: list[str] | None = None
 ) -> Esperada | None:
@@ -240,6 +273,7 @@ def respuesta_esperada(
     Con las opciones del ejercicio, una clave de selección también se reconoce por
     su valor: si la C es "50 gapes", decir "50" es tan revelador como decir "la C".
     """
+    unidades = _unidades_de_la_pregunta(enunciado)
     if solucion is not None:
         valor = solucion.valor.strip()
         if solucion.tipo == "opcion" and re.fullmatch(r"[A-Ea-e]", valor):
@@ -247,15 +281,19 @@ def respuesta_esperada(
             indice = ord(letra) - ord("A")
             opcion = opciones[indice] if opciones and indice < len(opciones) else None
             valor_opcion = _valor_de_la_opcion(opcion) if opcion else None
-            return Esperada(valores=[valor_opcion] if valor_opcion is not None else [], letra=letra)
+            if valor_opcion is not None:
+                unidades |= _unidades_de(opcion)
+            return Esperada(valores=[valor_opcion] if valor_opcion is not None else [], letra=letra, unidades=unidades)
         numeros = _numeros(valor)
         if numeros:
-            return Esperada(valores=[numeros[0].valor], es_porcentaje=numeros[0].con_porcentaje)
+            return Esperada(
+                valores=[numeros[0].valor], es_porcentaje=numeros[0].con_porcentaje, unidades=unidades | _unidades_de(valor)
+            )
         return None
     if enunciado:
         valores = resolver_enunciado(enunciado)
         if valores:
-            return Esperada(valores=valores)
+            return Esperada(valores=valores, unidades=unidades)
     return None
 
 
@@ -354,6 +392,43 @@ def _dice_la_respuesta(dicho: str, esperada: Esperada, enunciado: str | None) ->
     return solo_la_respuesta or revela_solucion(dicho, esperada, enunciado)
 
 
+_CIERRE = re.compile(
+    r"(?:\brespuesta\b|\bresultado\b|\ben\s+total\b|\bentonces\b|\bson\b|\bnecesit\w*)[^.\d]{0,20}$", re.IGNORECASE
+)
+Nivel = Literal["final", "numero"]
+
+
+def _con_forma_final(texto: str, esperada: Esperada) -> bool:
+    """Si el texto presenta la respuesta como respuesta final del ejercicio, sin dudas.
+
+    Una letra ("la B") siempre lo es. Un número lo es si el problema no cuenta nada
+    (una ecuación) o si viene con lo que se cuenta ("10 empleados") o como cierre
+    ("la respuesta es 10", "entonces son 10"). "10 horas", si preguntan por
+    empleados, es un paso intermedio aunque el número coincida.
+    """
+    if esperada.letra and (_menciona_la_letra(texto, esperada.letra) or texto.strip(" ¿?¡!.").upper() == esperada.letra):
+        return True
+    for hallado in _numeros(texto):
+        if not _coincide(hallado, esperada):
+            continue
+        if not esperada.unidades:
+            return True
+        cerca = texto[hallado.fin : hallado.fin + 30] + " " + texto[max(0, hallado.inicio - 25) : hallado.inicio]
+        if any(_raiz(p) in esperada.unidades for p in re.findall(rf"[{_LETRAS}]+", cerca, re.IGNORECASE)):
+            return True
+        if _CIERRE.search(texto[max(0, hallado.inicio - 40) : hallado.inicio]):
+            return True
+    return False
+
+
+def nivel_de_lo_dicho(dicho: str, esperada: Esperada, enunciado: str | None) -> Nivel | None:
+    """Si el estudiante dijo la respuesta: "final" si la presentó como respuesta final,
+    "numero" si solo escribió el número (puede ser un paso intermedio) y None si no la dijo."""
+    if not _dice_la_respuesta(dicho, esperada, enunciado):
+        return None
+    return "final" if _con_forma_final(dicho, esperada) else "numero"
+
+
 # Formas que solo pueden ser una respuesta final: una letra de opción ("la C", "¿B?")
 # o una incógnita despejada ("x = 7"). Un número suelto puede ser un paso intermedio
 # ("me queda 15"), así que nunca se declara incorrecto.
@@ -374,8 +449,11 @@ def revisar_propuesta(
     esperada = respuesta_esperada(enunciado, solucion, opciones)
     if esperada is None or not mensaje.strip():
         return None
-    if _dice_la_respuesta(mensaje, esperada, enunciado):
+    nivel = nivel_de_lo_dicho(mensaje, esperada, enunciado)
+    if nivel == "final":
         return "correcta"
+    if nivel == "numero":
+        return None  # puede ser un paso intermedio: que juzgue el modelo
     texto = mensaje.strip()
     if esperada.letra and _PROPONE_LETRA.match(texto):
         return "incorrecta"
@@ -390,7 +468,9 @@ def filtra_la_respuesta(
     """Indica si la respuesta del tutor le regala al estudiante el resultado final.
 
     No es filtración si el estudiante ya dijo la respuesta correcta (en este
-    mensaje o antes): ahí el tutor puede confirmarla.
+    mensaje o antes): ahí el tutor puede confirmarla. Si solo escribió el número,
+    que puede ser un paso intermedio ("10 horas"), el tutor puede repetir ese
+    número, pero no dar la letra ni presentarlo como respuesta final ("10 empleados").
     """
     enunciado = entrada.contexto.enunciado or next(
         (a.texto for a in salida.anotaciones if isinstance(a, AnotacionEnunciado)), None
@@ -399,10 +479,11 @@ def filtra_la_respuesta(
     if esperada is None:
         return False
 
-    # ¿El estudiante ya la dijo? Entonces el tutor puede confirmarla.
     dichos = [m.texto for m in entrada.historial if m.autor == "estudiante"] + [entrada.mensaje]
-    if any(_dice_la_respuesta(dicho, esperada, enunciado) for dicho in dichos):
-        return False
-
+    niveles = {nivel_de_lo_dicho(dicho, esperada, enunciado) for dicho in dichos}
     textos = [salida.texto] + [a.texto for a in salida.anotaciones if isinstance(a, AnotacionApunte)]
+    if "final" in niveles:
+        return False  # ya la dijo como respuesta final: el tutor puede confirmarla
+    if "numero" in niveles:
+        return any(_con_forma_final(texto, esperada) for texto in textos)
     return any(revela_solucion(texto, esperada, enunciado) for texto in textos)

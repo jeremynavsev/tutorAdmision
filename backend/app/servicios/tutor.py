@@ -101,7 +101,8 @@ def responder(entrada: ChatEntrada) -> ChatSalida:
     enunciado = entrada.contexto.enunciado
     # Si se conoce la respuesta, el código juzga lo que propuso el estudiante: el modelo a
     # veces confunde un acierto con un error (o al revés).
-    propuesta = revisar_propuesta(entrada.mensaje, enunciado, solucion, opciones)
+    # En el primer mensaje todavía no hay pizarra: si es del banco, se usa su enunciado.
+    propuesta = revisar_propuesta(entrada.mensaje, enunciado or (del_banco.enunciado if del_banco else None), solucion, opciones)
     mensajes = armar_conversacion(entrada, ejercicios_parecidos, propuesta)
     salida = _pedir(mensajes, enunciado)
 

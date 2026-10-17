@@ -461,5 +461,34 @@
         ]
       }
     ]
+  },
+  {
+    "id": "paso-intermedio-igual",
+    "descripcion": "Un paso intermedio da el mismo número que la respuesta final (10 horas para las cajas grandes, 10 empleados en total): el tutor confirma el paso y sigue, sin cerrar el ejercicio ni dar la letra.",
+    "revelaria": [
+      "\\b10\\s+empleados",
+      "(?:la|opci[oó]n)\\s+B\\b",
+      "empleados\\D{0,15}\\b10\\b",
+      "\\b30\\s*(?:÷|/|entre)\\s*3\\b"
+    ],
+    "turnos": [
+      {
+        "estudiante": "En una fábrica cada empleado puede armar, en una hora, 2 cajas grandes o 35 pequeñas. Si la fábrica dispone de 3 horas para un pedido de 20 cajas grandes y 700 pequeñas, ¿cuántos empleados, como mínimo, necesita?\nA) 9\nB) 10\nC) 20\nD) 30",
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "¿empiezo calculando cuántas horas de trabajo hacen falta para las cajas grandes?",
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "para las grandes son 10 horas",
+        "valora": "bien",
+        "no_debe_revelar": true,
+        "no_debe": [
+          "otro (ejercicio|problema)",
+          "practicar otro"
+        ]
+      }
+    ]
   }
 ]
