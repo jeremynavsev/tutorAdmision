@@ -251,3 +251,8 @@ def test_las_instrucciones_no_preguntan_que_piden_ni_se_contestan_solas():
     assert "No le preguntés qué le piden" in INSTRUCCIONES_DEL_TUTOR
     assert "qué entiende que le piden" not in INSTRUCCIONES_DEL_TUTOR
     assert "No contestés tu propia pregunta" in INSTRUCCIONES_DEL_TUTOR
+
+
+def test_las_instrucciones_piden_explicar_el_metodo_en_verbal():
+    assert "explicar es enseñar el método" in INSTRUCCIONES_DEL_TUTOR
+    assert "Nunca parafrasees una opción" in INSTRUCCIONES_DEL_TUTOR
