@@ -1,14 +1,25 @@
 """Evaluación automática del tutor.
 
-Corre las conversaciones de ``casos.json`` contra el tutor real (la misma
-función que usa ``POST /api/chat``) y revisa cada respuesta. Al final muestra un
-resumen por tipo de revisión y guarda un reporte en ``evaluacion/resultados/``.
+Corre conversaciones de prueba contra el tutor real (la misma función que usa
+``POST /api/chat``) y revisa cada respuesta. Al final muestra un resumen por
+tipo de revisión y guarda un reporte en ``evaluacion/resultados/``.
+
+Hay dos conjuntos de casos:
+
+- ``publico``: ``casos.json``, escritos a mano con problemas inventados.
+- ``banco``: ``privado/casos_banco.json``, generados a partir del banco privado
+  con ``python -m evaluacion.generar_casos``. Como el banco, no se suben al
+  repositorio.
 
 Uso, desde ``backend/``:
 
     .venv/bin/python -m evaluacion.evaluar               # todos los casos
     .venv/bin/python -m evaluacion.evaluar --caso no-se,otra-materia  # solo esos
+    .venv/bin/python -m evaluacion.evaluar --conjunto banco --muestra 10  # 10 al azar del banco
     .venv/bin/python -m evaluacion.evaluar --proveedor groq  # solo Groq, para comparar parejo
+
+La muestra usa una semilla fija (``--semilla``), así que repetirla da los mismos
+casos: sirve para comparar dos versiones del tutor sin gastar la cuota de todos.
 
 Las revisiones buscan patrones en el texto: detectan lo evidente (si confirmó,
 si señaló el error, si volvió a preguntar algo ya respondido, si reveló la
@@ -19,6 +30,7 @@ consulta.
 import argparse
 import datetime
 import json
+import random
 import re
 import sys
 import time
@@ -63,8 +75,29 @@ class Caso(BaseModel):
     """Patrones que delatan la respuesta final de este problema."""
 
 
-def cargar_casos(ruta: Path = CARPETA / "casos.json") -> list[Caso]:
+RUTA_CASOS_PUBLICOS = CARPETA / "casos.json"
+RUTA_CASOS_BANCO = CARPETA / "privado" / "casos_banco.json"
+
+
+def cargar_casos(ruta: Path = RUTA_CASOS_PUBLICOS) -> list[Caso]:
     return [Caso.model_validate(c) for c in json.loads(ruta.read_text(encoding="utf-8"))]
+
+
+def cargar_conjunto(conjunto: str) -> list[Caso]:
+    """Los casos públicos, los generados del banco (si existen) o ambos."""
+    casos = []
+    if conjunto in ("publico", "todos"):
+        casos += cargar_casos(RUTA_CASOS_PUBLICOS)
+    if conjunto in ("banco", "todos") and RUTA_CASOS_BANCO.exists():
+        casos += cargar_casos(RUTA_CASOS_BANCO)
+    return casos
+
+
+def muestra(casos: list[Caso], cuantos: int | None, semilla: int) -> list[Caso]:
+    """Una muestra fija de los casos: con la misma semilla, siempre los mismos."""
+    if not cuantos or cuantos >= len(casos):
+        return casos
+    return random.Random(semilla).sample(casos, cuantos)
 
 
 # ---------- Revisiones (sin red: se pueden probar con pytest) ----------
@@ -257,6 +290,11 @@ def _reporte(
 def main(argumentos: list[str] | None = None) -> int:
     opciones = argparse.ArgumentParser(description="Evalúa al tutor con conversaciones de prueba.")
     opciones.add_argument("--caso", help="Correr solo estos casos (ids separados por coma).")
+    opciones.add_argument(
+        "--conjunto", choices=("publico", "banco", "todos"), default="todos", help="Qué casos correr."
+    )
+    opciones.add_argument("--muestra", type=int, help="Correr solo esta cantidad de casos, elegidos al azar.")
+    opciones.add_argument("--semilla", type=int, default=2026, help="Semilla de la muestra.")
     opciones.add_argument("--pausa", type=float, default=4.0, help="Segundos entre turnos, para no agotar la cuota.")
     opciones.add_argument(
         "--proveedor",
@@ -264,7 +302,10 @@ def main(argumentos: list[str] | None = None) -> int:
     )
     args = opciones.parse_args(argumentos)
 
-    casos = {c.id: c for c in cargar_casos()}
+    casos = {c.id: c for c in cargar_conjunto(args.conjunto)}
+    if args.conjunto == "banco" and not casos:
+        print("No hay casos del banco. Generalos con: python -m evaluacion.generar_casos")
+        return 2
     if args.caso:
         pedidos = [c.strip() for c in args.caso.split(",") if c.strip()]
         desconocidos = [c for c in pedidos if c not in casos]
@@ -273,7 +314,7 @@ def main(argumentos: list[str] | None = None) -> int:
             return 2
         elegidos = [casos[c] for c in pedidos]
     else:
-        elegidos = list(casos.values())
+        elegidos = muestra(list(casos.values()), args.muestra, args.semilla)
     proveedores = elegir_proveedores(modelos_ia.proveedores_disponibles(), args.proveedor)
     if not proveedores:
         nombres = ", ".join(p.etiqueta for p in modelos_ia.proveedores_disponibles()) or "ninguno"

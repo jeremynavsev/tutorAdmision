@@ -5,8 +5,10 @@ import re
 import pytest
 
 from app.config import Configuracion
+from app.esquemas import Ejercicio
 from app.servicios.modelos_ia import proveedores_disponibles
-from evaluacion.evaluar import ACIERTO, ERROR, TUTEO, Turno, cargar_casos, elegir_proveedores, revisar_turno
+from evaluacion.evaluar import ACIERTO, ERROR, TUTEO, Caso, Turno, cargar_casos, elegir_proveedores, muestra, revisar_turno
+from evaluacion.generar_casos import PLANTILLAS, casos_de, generar, letra_equivocada, patrones_de_la_clave
 
 
 def nombres_fallidos(texto, turno, pista=None, revelaria=(), bloqueada=False, es_el_problema=False, apuntes=()):
@@ -137,3 +139,62 @@ def test_no_felicita_si_el_estudiante_dijo_que_no_entendio():
     turno = Turno(estudiante="no entendí", felicita=False)
     assert "no felicita sin motivo" in nombres_fallidos("¡Correcto! Necesitamos comparar…", turno)
     assert "no felicita sin motivo" not in nombres_fallidos("Te lo explico con un caso más sencillo…", turno)
+
+
+# ---------- Casos generados del banco ----------
+
+
+def ejercicio_de_banco(id="x-1", area="Razonamiento matemático", opciones=("200 gapes", "50 gapes", "25 gapes", "10 gapes"),
+                       clave="B", errores=("Elegir la C: dividir una vez de más.",), enunciado="Carlos tenía 800 gapes y regaló la mitad cuatro veces. ¿Cuánto le dio al cuarto?") -> Ejercicio:
+    return Ejercicio(id=id, tema="Prueba", area=area, enunciado=enunciado, opciones=list(opciones),
+                     solucion={"tipo": "opcion", "valor": clave}, pasos=["Paso."], errores_comunes=list(errores))
+
+
+def test_la_clave_se_delata_por_la_letra_y_por_el_valor():
+    patrones = patrones_de_la_clave(ejercicio_de_banco())
+    assert any(re.search(p, "La respuesta es la B.", re.I) for p in patrones)
+    assert any(re.search(p, "Al cuarto le dio 50 gapes.", re.I) for p in patrones)
+    assert not any(re.search(p, "Al primero le dio 400. ¿Y al segundo?", re.I) for p in patrones)
+    assert not any(re.search(p, "Fijate en la mitad de 800.", re.I) for p in patrones)
+
+
+def test_un_numero_que_es_dato_del_enunciado_no_cuenta_como_clave():
+    e = ejercicio_de_banco(opciones=("400 gapes", "800 gapes", "1", "2"), clave="B")
+    assert not any(re.search(p, "Empezó con 800 gapes.", re.I) for p in patrones_de_la_clave(e))
+
+
+def test_en_verbal_cuenta_el_texto_corto_de_la_opcion():
+    e = ejercicio_de_banco(area="Razonamiento verbal", opciones=("Social.", "Clasista.", "Benéfica.", "Integradora."), clave="D",
+                           enunciado="Donde hay educación no hay distinción de clases, decía Confucio. ¿Cómo es la educación?")
+    patrones = patrones_de_la_clave(e)
+    assert any(re.search(p, "Es integradora, porque une a las clases.", re.I) for p in patrones)
+    assert not any(re.search(p, "Pensá en qué efecto tiene sobre las clases sociales.", re.I) for p in patrones)
+
+
+def test_el_estudiante_se_equivoca_con_el_distractor_del_error_comun():
+    assert letra_equivocada(ejercicio_de_banco()) == "C"
+    assert letra_equivocada(ejercicio_de_banco(errores=())) == "A"
+
+
+def test_cada_plantilla_arma_un_caso_valido():
+    for plantilla in PLANTILLAS:
+        caso = Caso.model_validate(casos_de(ejercicio_de_banco(), plantilla))
+        assert caso.id == f"{plantilla}:x-1" and caso.turnos[0].no_debe_revelar
+        assert "A) 200 gapes" in caso.turnos[0].estudiante
+
+
+def test_genera_ejercicios_distintos_repartidos_por_area_y_siempre_los_mismos():
+    banco = [ejercicio_de_banco(id=f"m-{i}") for i in range(10)] + [
+        ejercicio_de_banco(id=f"v-{i}", area="Razonamiento verbal") for i in range(10)
+    ]
+    casos = generar(banco, por_plantilla=4, semilla=1)
+    ejercicios = [c["id"].split(":")[1] for c in casos]
+    assert len(casos) == 16 and len(set(ejercicios)) == 16
+    assert sum(e.startswith("v-") for e in ejercicios) == 8
+    assert generar(banco, por_plantilla=4, semilla=1) == casos
+
+
+def test_la_muestra_es_fija_con_la_misma_semilla():
+    casos = [Caso(id=str(i), descripcion="", turnos=[]) for i in range(30)]
+    assert muestra(casos, 5, 7) == muestra(casos, 5, 7)
+    assert len(muestra(casos, 5, 7)) == 5 and muestra(casos, None, 7) == casos

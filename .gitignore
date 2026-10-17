@@ -30,3 +30,5 @@ backend/evaluacion/resultados/
 
 # Banco de ejercicios real: privado, nunca se sube al repositorio
 backend/ejercicios/privado/
+# Casos de evaluación generados a partir del banco privado
+backend/evaluacion/privado/
