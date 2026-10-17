@@ -419,7 +419,7 @@
       }
     ],
     "revelaria": [
-      "\\bx\\s*=\\s*7\\b",
+      "\\bx\\s*=\\s*7\\b(?!\\s*[?¿,]|\\s+y\\b|\\s+o\\b)",
       "\\bvale\\s+7\\b",
       "\\bes\\s+(el\\s+)?7\\b",
       "\\bsiete\\b"
@@ -454,7 +454,7 @@
         "no_debe_revelar": true
       },
       {
-        "estudiante": "6 personas",
+        "estudiante": "ya entendí: son 12 horas de trabajo y hay 2 horas, entonces 6 personas, la B",
         "valora": "bien",
         "debe": [
           "otro (ejercicio|problema)|practicar otro|seguir practicando|otro m[áa]s"

@@ -198,3 +198,16 @@ def test_la_muestra_es_fija_con_la_misma_semilla():
     casos = [Caso(id=str(i), descripcion="", turnos=[]) for i in range(30)]
     assert muestra(casos, 5, 7) == muestra(casos, 5, 7)
     assert len(muestra(casos, 5, 7)) == 5 and muestra(casos, None, 7) == casos
+
+
+def test_felicitar_cuenta_solo_al_principio():
+    turno = Turno(estudiante="no entendí", felicita=False)
+    assert "no felicita sin motivo" not in nombres_fallidos("Lo siento, no puedo ayudar con eso.", turno)
+    assert "no felicita sin motivo" in nombres_fallidos("¡Eso es! Vamos con lo siguiente.", turno)
+
+
+def test_invitar_a_probar_un_valor_no_es_revelarlo():
+    caso = next(c for c in cargar_casos() if c.id == "solo-verificar")
+    probar = "Probá sustituir: ¿qué obtenés si ponés x=7? ¿y si ponés x=8?"
+    assert not any(re.search(p, probar, re.I) for p in caso.revelaria)
+    assert any(re.search(p, "Listo: x = 7.", re.I) for p in caso.revelaria)

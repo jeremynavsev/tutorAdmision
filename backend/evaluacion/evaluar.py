@@ -151,10 +151,13 @@ def revisar_turno(
     tampoco puede aparecer ahí.
     """
     revisiones: list[Revision] = []
-    inicio = texto[:40]
+    # Una felicitación cuenta solo al principio: "¡Eso es!" sí, "no puedo ayudar con eso" no.
+    felicita_al_inicio = ACIERTO.search(texto[:40])
+    if felicita_al_inicio and texto[: felicita_al_inicio.start()].strip(" ¡!¿,."):
+        felicita_al_inicio = None
 
     if (es_el_problema and turno.valora is None) or turno.felicita is False:
-        felicita = ACIERTO.search(inicio)
+        felicita = felicita_al_inicio
         revisiones.append(
             Revision("no felicita sin motivo", not felicita, f"empezó con «{felicita.group(0).strip()}»" if felicita else "")
         )
@@ -162,7 +165,7 @@ def revisar_turno(
     if turno.valora == "bien":
         revisiones.append(Revision("confirma el acierto", bool(ACIERTO.search(texto)), "no dijo que estaba bien"))
     elif turno.valora == "mal":
-        senala = bool(ERROR.search(texto)) and not ACIERTO.search(inicio)
+        senala = bool(ERROR.search(texto)) and not felicita_al_inicio
         revisiones.append(Revision("señala el error", senala, "no dijo que todavía no estaba bien"))
 
     if turno.pista is True:
