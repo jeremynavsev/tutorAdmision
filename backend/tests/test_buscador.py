@@ -77,6 +77,64 @@ def test_un_pedazo_del_ejercicio_no_es_el_mismo():
     assert BANCO.mismo_ejercicio("Carlos tenía 800 colones en la billetera.") is None
 
 
+def test_subindices_y_exponentes_se_comparan_como_texto_comun():
+    assert palabras("N₁₁₆") == palabras("N116") == palabras("𝑁116")
+    assert palabras("2² – 1²") == palabras("2^2 – 1^2")
+
+
+def test_las_opciones_unidas_no_se_leen_como_un_numero_con_miles():
+    sucesion = ejercicio("s", "¿Qué número sigue en 2, 6, 12?", opciones=("35", "49", "168", "175"))
+    assert Buscador([sucesion]).mismo_ejercicio(sucesion.enunciado + "\nA) 35\nB) 49\nC) 168\nD) 175") == sucesion
+
+
+SUCESION = ejercicio(
+    "sucesion",
+    "Considere la siguiente secuencia de igualdades: N₁ = 2, N₂ = 2, N₃ = 6, N₄ = 6, N₅ = 10. "
+    "Si se continúa la secuencia, ¿a cuánto equivale N₁₁₆?",
+)
+
+
+def test_una_sucesion_con_otros_terminos_no_es_la_misma():
+    otra = "Considere la siguiente secuencia de igualdades: N1 = 4, N2 = 6, N3 = 10, N4 = 18, N5 = 34. ¿A cuánto equivale N6?"
+    assert Buscador([SUCESION]).mismo_ejercicio(otra) is None
+    assert Buscador([SUCESION]).mismo_ejercicio(SUCESION.enunciado.replace("₁₁₆", "116").replace("₁", "1")) == SUCESION
+
+
+def test_si_trae_numeros_que_el_ejercicio_no_tiene_no_es_el_mismo():
+    con_otros = BILLETERA.enunciado + " Después llegaron 3 sobrinos más con 250 y 75 colones."
+    assert BANCO.mismo_ejercicio(con_otros) is None
+    assert BANCO.mismo_ejercicio("Ítem 12. " + BILLETERA.enunciado) == BILLETERA  # un número de más se tolera
+
+
+ARQUERO = ejercicio(
+    "arquero",
+    "Volver la vista atrás es una cosa y marchar hacia atrás, otra, pues el paso que se dé es definitivo.",
+    clave="B",
+    opciones=("Observar y andar son opuestos.", "Andar es más determinado que observar.", "Cumplen el mismo objetivo.", "Mirar cuesta menos."),
+)
+
+
+def con_opciones(enunciado: str, opciones) -> str:
+    return enunciado + "\n" + "\n".join(f"{letra}) {o}" for letra, o in zip("ABCDE", opciones))
+
+
+def test_con_las_mismas_opciones_es_el_mismo_ejercicio():
+    assert Buscador([ARQUERO]).mismo_ejercicio(con_opciones(ARQUERO.enunciado, ARQUERO.opciones)) == ARQUERO
+    en_una_linea = ARQUERO.enunciado + " " + " ".join(f"{l}) {o}" for l, o in zip("ABCD", ARQUERO.opciones))
+    assert Buscador([ARQUERO]).mismo_ejercicio(en_una_linea) == ARQUERO
+
+
+def test_con_otro_orden_de_opciones_no_es_el_mismo():
+    # Otra versión del ítem: la clave B de la versión del banco no le sirve.
+    otro_orden = [ARQUERO.opciones[1], ARQUERO.opciones[0], *ARQUERO.opciones[2:]]
+    assert Buscador([ARQUERO]).mismo_ejercicio(con_opciones(ARQUERO.enunciado, otro_orden)) is None
+
+
+def test_con_otra_cantidad_de_opciones_no_es_el_mismo():
+    cinco = [*ARQUERO.opciones, "Requieren precaución."]
+    assert Buscador([ARQUERO]).mismo_ejercicio(con_opciones(ARQUERO.enunciado, cinco)) is None
+
+
 def test_un_banco_vacio_no_encuentra_nada():
     vacio = Buscador([])
     assert vacio.buscar("cualquier cosa") == [] and vacio.mismo_ejercicio("cualquier cosa") is None

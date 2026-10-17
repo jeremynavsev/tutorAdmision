@@ -11,9 +11,17 @@ dependencia ni mandar el problema a un servicio de embeddings. Antes de
 comparar se pasa todo a minúsculas, sin tildes y sin palabras vacías ("el",
 "de", "que"…).
 
-Para decir que es *el mismo* ejercicio no basta con que se parezca: tienen que
-aparecer casi todas sus palabras y todos sus números. Un ejercicio parecido
-con otros números no es el mismo, y su clave no sirve para verificar.
+Para decir que es *el mismo* ejercicio no basta con que se parezca:
+
+- tienen que aparecer casi todas sus palabras y todos sus números;
+- el problema no puede traer números que el ejercicio no tiene (así una
+  sucesión con otros términos no pasa por la del banco);
+- si el problema trae las opciones, tienen que ser las mismas y en el mismo
+  orden: otra versión del ítem puede tener otra clave.
+
+Un ejercicio parecido que no cumple esto no es el mismo, y su clave no sirve
+para verificar. Los subíndices y exponentes se normalizan antes de comparar:
+"N₁₁₆" es "N116" y "2²" es "2^2".
 """
 
 import logging
@@ -34,6 +42,13 @@ SIMILITUD_MINIMA = 0.2
 """Por debajo de esto, un ejercicio no ayuda: es mejor no pasar nada que pasar ruido."""
 COBERTURA_MISMO_EJERCICIO = 0.8
 """Fracción de las palabras del ejercicio del banco que deben aparecer en el problema."""
+NUMEROS_AJENOS_PERMITIDOS = 1
+"""Números del problema que no están en el ejercicio (por ejemplo, "el ítem 12 de la práctica")."""
+SIMILITUD_OPCION = 0.7
+"""Palabras en común entre la opción del banco y la del problema, sobre todas las palabras de las dos.
+
+Se mide en las dos direcciones: las opciones son cortas y comparten palabras ("Observar y andar…",
+"Andar es más… que observar"), así que no basta con que una contenga a la otra."""
 
 _PALABRAS_VACIAS = set(
     """
@@ -44,6 +59,9 @@ _PALABRAS_VACIAS = set(
     """.split()
 )
 _PALABRA = re.compile(r"[a-zñ]+|\d+")
+_EXPONENTES = str.maketrans({"⁰": "^0", "¹": "^1", "²": "^2", "³": "^3", "⁴": "^4", "⁵": "^5", "⁶": "^6", "⁷": "^7", "⁸": "^8", "⁹": "^9"})
+# Una opción: "A) …" al inicio de una línea o después de un espacio, con las letras en orden.
+_MARCA_DE_OPCION = re.compile(r"(?:^|(?<=\s))\(?([A-E])\)\s*", re.MULTILINE)
 
 
 def _sin_tildes(texto: str) -> str:
@@ -53,10 +71,35 @@ def _sin_tildes(texto: str) -> str:
     return sin.replace("\0", "ñ")
 
 
+def _normalizado(texto: str) -> str:
+    """Exponentes como "^2" y subíndices y letras matemáticas como texto común ("𝑁₁" → "N1")."""
+    return unicodedata.normalize("NFKC", texto.translate(_EXPONENTES))
+
+
 def palabras(texto: str) -> list[str]:
     """Las palabras que cuentan para comparar: sin tildes, sin palabras vacías, con los números."""
+    texto = _normalizado(texto)
     texto = re.sub(r"(?<=\d)[  .](?=\d{3}(?!\d))", "", texto)  # "3 000" y "3.000" son el mismo número
     return [p for p in _PALABRA.findall(_sin_tildes(texto)) if p.isdigit() or (len(p) > 2 and p not in _PALABRAS_VACIAS)]
+
+
+def opciones_del_texto(texto: str) -> list[str]:
+    """Las opciones que trae el problema ("A) 9", "B) 10"…), si vienen en orden desde la A."""
+    marcas = list(_MARCA_DE_OPCION.finditer(texto))
+    opciones = []
+    for i, marca in enumerate(marcas):
+        if marca.group(1) != "ABCDE"[len(opciones)]:
+            break
+        fin = marcas[i + 1].start() if i + 1 < len(marcas) else len(texto)
+        opciones.append(texto[marca.end() : fin].strip())
+    return opciones if len(opciones) >= 2 else []
+
+
+def _misma_opcion(del_banco: str, del_problema: str) -> bool:
+    propias, presentes = set(palabras(del_banco)), set(palabras(del_problema))
+    if not propias:  # una opción sin palabras que cuenten ("—"): se compara el texto tal cual
+        return del_banco.strip(" .") == del_problema.strip(" .")
+    return len(propias & presentes) / len(propias | presentes) >= SIMILITUD_OPCION
 
 
 @dataclass(frozen=True)
@@ -76,10 +119,12 @@ class Buscador:
         self._idf = {p: math.log((1 + total) / (1 + n)) + 1 for p, n in aparece_en.items()}
         self._vectores = [self._vector(doc) for doc in documentos]
         self._propias = {e.id: set(palabras(e.enunciado)) for e in self.ejercicios}
+        self._numeros = {e.id: {p for p in palabras(self._texto(e)) if p.isdigit()} for e in self.ejercicios}
 
     @staticmethod
     def _texto(ejercicio: Ejercicio) -> str:
-        return " ".join([ejercicio.tema, ejercicio.enunciado, *ejercicio.opciones])
+        # Con saltos de línea y no con espacios: "35 49 168" se leería como un número con miles.
+        return "\n".join([ejercicio.tema, ejercicio.enunciado, *ejercicio.opciones])
 
     def _vector(self, doc: list[str]) -> dict[str, float]:
         cuentas = Counter(doc)
@@ -103,14 +148,27 @@ class Buscador:
     def mismo_ejercicio(self, texto: str) -> Ejercicio | None:
         """El ejercicio del banco que es este mismo problema, si hay uno."""
         presentes = set(palabras(texto))
+        numeros_del_problema = {p for p in presentes if p.isdigit()}
+        opciones = opciones_del_texto(texto)
         for c in self.buscar(texto, cuantos=3):
-            propias = self._propias[c.ejercicio.id]
-            numeros = {p for p in propias if p.isdigit()}
-            if not propias or not numeros <= presentes:
+            e = c.ejercicio
+            propias = self._propias[e.id]
+            if not propias or not {p for p in propias if p.isdigit()} <= presentes:
+                continue  # le faltan números del ejercicio
+            if len(numeros_del_problema - self._numeros[e.id]) > NUMEROS_AJENOS_PERMITIDOS:
+                continue  # trae números que el ejercicio no tiene
+            if len(propias & presentes) / len(propias) < COBERTURA_MISMO_EJERCICIO:
                 continue
-            if len(propias & presentes) / len(propias) >= COBERTURA_MISMO_EJERCICIO:
-                return c.ejercicio
+            if opciones and not self._mismas_opciones(e, opciones):
+                continue  # otra versión del ítem: su clave puede ser otra
+            return e
         return None
+
+    @staticmethod
+    def _mismas_opciones(ejercicio: Ejercicio, opciones: list[str]) -> bool:
+        return len(opciones) == len(ejercicio.opciones) and all(
+            _misma_opcion(del_banco, del_problema) for del_banco, del_problema in zip(ejercicio.opciones, opciones)
+        )
 
 
 @lru_cache
