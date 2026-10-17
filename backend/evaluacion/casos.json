@@ -490,5 +490,36 @@
         ]
       }
     ]
+  },
+  {
+    "id": "lectura-sin-palabras-de-la-opcion",
+    "descripcion": "Ejercicio de lectura inventado: al explicar y al dar pistas, el tutor no usa las palabras clave de la opción correcta (lealtad, adversidad) ni la señala; enseña el método. Ante un error, lo señala.",
+    "revelaria": [
+      "\\b(?:la|opci[oó]n|respuesta(?:\\s+es)?)\\s+\\(?B\\)?(?![a-záéíóúñ])",
+      "\\blealtad\\b",
+      "\\badversidad\\b",
+      "\\bleal(?:es)?\\b"
+    ],
+    "turnos": [
+      {
+        "estudiante": "La verdadera amistad no se mide por el tiempo que se pasa juntos, sino por la confianza que se tiene en los momentos difíciles.\n¿Qué valora más el texto en la amistad?\nA) La cantidad de encuentros.\nB) La lealtad en la adversidad.\nC) La diversión compartida.\nD) Los años de conocerse.",
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "no entendí",
+        "felicita": false,
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "dame una pista",
+        "pista": true,
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "¿es la D?",
+        "valora": "mal",
+        "no_debe_revelar": true
+      }
+    ]
   }
 ]
