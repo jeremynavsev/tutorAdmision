@@ -1523,6 +1523,40 @@ button {
   min-height: 52px;
 }
 
+.dialogo-botones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* En pantallas angostas, uno debajo del otro: así el texto nunca se parte. */
+@media (max-width: 30rem) {
+  .dialogo-botones {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Para cancelar: con borde, sin relleno. */
+.boton-secundario {
+  background: transparent;
+  border-color: var(--musgo);
+  color: var(--carbon);
+}
+
+.boton-secundario:hover {
+  background: var(--helecho);
+}
+
+/* Para acciones que no se pueden deshacer: colores invertidos, como los avisos de error. */
+.boton-peligro {
+  background: var(--carbon);
+  color: var(--papel);
+}
+
+.boton-peligro:hover {
+  background: color-mix(in srgb, var(--carbon) 85%, var(--papel));
+}
+
 /* ---------- Toasts ---------- */
 
 /* Franja de avisos bajo la barra del chat. No flota: así nunca tapa un mensaje ni el botón Enviar. */

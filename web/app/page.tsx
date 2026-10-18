@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import AvisoEntrada from "@/components/AvisoEntrada";
 import BarraLateral from "@/components/BarraLateral";
+import ConfirmarEliminar from "@/components/ConfirmarEliminar";
 import Bienvenida from "@/components/Bienvenida";
 import Conversacion from "@/components/Conversacion";
 import { IconoMenu, IconoNuevo, IconoPizarra } from "@/components/Iconos";
@@ -62,6 +63,7 @@ export default function Inicio() {
   const [animar, setAnimar] = useState<Set<string>>(new Set());
   const [fotos, setFotos] = useState<Record<string, string>>({});
   const [aviso, setAviso] = useState({ abierto: false, obligatorio: false });
+  const [porEliminar, setPorEliminar] = useState<Chat | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   // Si ya no quedan mensajes hoy: el texto que se muestra en lugar del campo para escribir.
   const [sinCupo, setSinCupo] = useState<string | null>(null);
@@ -237,6 +239,11 @@ export default function Inicio() {
     cerrarLateralEnCelular();
   }
 
+  /** Pide confirmación; el chat se elimina recién al confirmar. */
+  function pedirEliminar(id: string) {
+    setPorEliminar(chats.find((c) => c.id === id) ?? null);
+  }
+
   function eliminarChat(id: string) {
     setChats((todos) => todos.filter((c) => c.id !== id));
     if (id === activoId) setActivoId(null);
@@ -272,7 +279,7 @@ export default function Inicio() {
         onAlternar={() => setLateralAbierta((a) => !a)}
         onNuevo={chatNuevo}
         onElegir={elegirChat}
-        onEliminar={eliminarChat}
+        onEliminar={pedirEliminar}
         onVerAviso={() => setAviso({ abierto: true, obligatorio: false })}
       />
 
@@ -342,6 +349,14 @@ export default function Inicio() {
       />
 
       <AvisoEntrada abierto={aviso.abierto} obligatorio={aviso.obligatorio} onAceptar={aceptarAviso} />
+      <ConfirmarEliminar
+        titulo={porEliminar?.titulo ?? null}
+        onCancelar={() => setPorEliminar(null)}
+        onConfirmar={() => {
+          if (porEliminar) eliminarChat(porEliminar.id);
+          setPorEliminar(null);
+        }}
+      />
     </div>
   );
 }
