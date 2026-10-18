@@ -211,3 +211,8 @@ def test_invitar_a_probar_un_valor_no_es_revelarlo():
     probar = "Probá sustituir: ¿qué obtenés si ponés x=7? ¿y si ponés x=8?"
     assert not any(re.search(p, probar, re.I) for p in caso.revelaria)
     assert any(re.search(p, "Listo: x = 7.", re.I) for p in caso.revelaria)
+
+
+def test_aun_no_tambien_senala_el_error():
+    turno = Turno(estudiante="es la A", valora="mal")
+    assert "señala el error" not in nombres_fallidos("Aún no, la opción A no corresponde. ¿Qué fracción de hora son 20 minutos?", turno)

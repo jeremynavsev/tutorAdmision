@@ -112,7 +112,7 @@ ACIERTO = re.compile(
     re.IGNORECASE,
 )
 ERROR = re.compile(
-    r"(\b(todav[íi]a no|ojo|no es|no est[áa]|no da|cuidado|casi|no exactamente|no del todo|incorrect\w*|revis[áa]|f[íi]jate bien|no queda)\b"
+    r"(\b(todav[íi]a no|a[úu]n no|ojo|no es|no est[áa]|no da|cuidado|casi|no exactamente|no del todo|incorrect\w*|revis[áa]|f[íi]jate bien|no queda)\b"
     r"|^\W*no\b)",  # una respuesta que empieza con "No," también señala el error
     re.IGNORECASE,
 )

@@ -253,10 +253,10 @@ def test_las_instrucciones_no_preguntan_que_piden_ni_se_contestan_solas():
     assert "No contestés tu propia pregunta" in INSTRUCCIONES_DEL_TUTOR
 
 
-def test_las_instrucciones_piden_explicar_el_metodo_en_verbal():
-    assert "explicar es enseñar el método" in INSTRUCCIONES_DEL_TUTOR
-    assert "Nunca parafrasees una opción" in INSTRUCCIONES_DEL_TUTOR
+def test_en_lectura_la_conexion_la_hace_el_estudiante():
+    assert "la conexión entre el texto y las\nopciones la hace el estudiante, nunca vos" in INSTRUCCIONES_DEL_TUTOR
+    assert "buscá la que" in INSTRUCCIONES_DEL_TUTOR
 
 
 def test_las_instrucciones_prohiben_usar_palabras_clave_de_las_opciones():
-    assert "No uses las palabras clave de las opciones" in INSTRUCCIONES_DEL_TUTOR
+    assert "Tampoco usés las palabras clave de las opciones" in INSTRUCCIONES_DEL_TUTOR
