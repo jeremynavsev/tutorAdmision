@@ -32,3 +32,10 @@ backend/evaluacion/resultados/
 backend/ejercicios/privado/
 # Casos de evaluación generados a partir del banco privado
 backend/evaluacion/privado/
+
+# Documentos de la investigación: solo en la computadora del investigador, no en el repositorio
+docs/DECISIONES.md
+docs/INFORME_INVESTIGACION.md
+
+# Archivos temporales de LibreOffice al abrir un documento
+.~lock.*#
