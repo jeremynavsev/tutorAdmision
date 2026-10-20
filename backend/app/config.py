@@ -70,13 +70,11 @@ class Configuracion:
 
     gemini_api_key: str = ""
     groq_api_key: str = ""
-    mistral_api_key: str = ""
     gemini_modelo: str = "gemini-3.8-flash"
     groq_modelo: str = "openai/gpt-oss-120b"
-    mistral_modelo: str = "mistral-small-latest"
     tiempo_maximo_ia: float = 30.0
     gemini_razonamiento: str = "low"
-    orden_proveedores: tuple[str, ...] = ("groq", "gemini", "mistral")
+    orden_proveedores: tuple[str, ...] = ("groq", "gemini")
     gemini_modelos_respaldo: tuple[str, ...] = ("gemini-3.5-flash", "gemini-3.1-flash-lite")
     database_url: str = "sqlite:///./maestro.db"
     limite_mensajes_sesion: int = 40
@@ -101,10 +99,8 @@ def obtener_configuracion() -> Configuracion:
     return Configuracion(
         gemini_api_key=os.environ.get("GEMINI_API_KEY", ""),
         groq_api_key=os.environ.get("GROQ_API_KEY", ""),
-        mistral_api_key=os.environ.get("MISTRAL_API_KEY", ""),
         gemini_modelo=_texto("GEMINI_MODELO", Configuracion.gemini_modelo),
         groq_modelo=_texto("GROQ_MODELO", Configuracion.groq_modelo),
-        mistral_modelo=_texto("MISTRAL_MODELO", Configuracion.mistral_modelo),
         tiempo_maximo_ia=_decimal("TIEMPO_MAXIMO_IA", Configuracion.tiempo_maximo_ia),
         gemini_razonamiento=_texto("GEMINI_RAZONAMIENTO", Configuracion.gemini_razonamiento).lower(),
         orden_proveedores=tuple(n.lower() for n in _lista("ORDEN_PROVEEDORES", Configuracion.orden_proveedores)),

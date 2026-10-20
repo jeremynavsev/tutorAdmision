@@ -1,8 +1,8 @@
-"""Cadena de proveedores de IA: Groq, Gemini y Mistral.
+"""Cadena de proveedores de IA: Groq y Gemini.
 
-Los tres ofrecen una API compatible con la de OpenAI, así que se usa el mismo
+Los dos ofrecen una API compatible con la de OpenAI, así que se usa el mismo
 cliente ``openai`` con otra URL base. Se prueban en el orden de
-``ORDEN_PROVEEDORES`` (por defecto Groq → Gemini → Mistral) y, si uno falla
+``ORDEN_PROVEEDORES`` (por defecto Groq → Gemini) y, si uno falla
 (error, tiempo agotado, cuota llena, modelo retirado o respuesta vacía), se pasa
 al siguiente. Solo entran los proveedores que tienen llave en el ``.env``.
 
@@ -109,13 +109,6 @@ def proveedores_disponibles(config: Configuracion | None = None) -> list[Proveed
             modelo=c.groq_modelo,
             llave=c.groq_api_key,
             acepta_imagenes=False,
-        ),
-        Proveedor(
-            nombre="mistral",
-            url_base="https://api.mistral.ai/v1",
-            modelo=c.mistral_modelo,
-            llave=c.mistral_api_key,
-            acepta_imagenes=True,
         ),
     ]
     # Primero los que nombra la configuración, en ese orden; después los que falten,

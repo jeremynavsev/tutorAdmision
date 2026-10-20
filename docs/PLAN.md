@@ -39,7 +39,7 @@ otros archivos.
 
 ## Fase 1 — Backend con IA real (1–2 semanas)
 
-- [x] `servicios/modelos_ia.py`: cadena Groq → Gemini → Mistral con el cliente `openai`,
+- [x] `servicios/modelos_ia.py`: cadena Groq → Gemini con el cliente `openai`,
       con tiempo máximo y paso automático al siguiente proveedor si uno falla.
 - [x] `servicios/agente.py`: instrucciones del sistema (voseo, guiar con preguntas, pistas
       que se adaptan al estudiante, nunca dar la respuesta) y respuesta en **JSON estructurado** con el
@@ -58,8 +58,6 @@ otros archivos.
 - **Gemini** gratuito permite solo 20 pedidos por día por modelo y se satura seguido
   (errores 503). Se usa para las fotos, con modelos de respaldo que suman cuota
   (`GEMINI_MODELOS_RESPALDO`) y con poco razonamiento para que responda más rápido.
-- **Mistral**: su API ya no es gratuita (pago por uso o plan Pro). Sigue soportado en el
-  código por si se consigue una llave.
 - **Los planes gratuitos no alcanzan para el piloto** con estudiantes: hay que
   presupuestar un plan de pago antes de la fase 6. Groq gratuito da 200 000 tokens por
   día y cada mensaje del tutor gasta unos 2700 (las instrucciones solas son unos 2000):

@@ -16,7 +16,7 @@ Un mae que te acompaña a estudiar.
 
 **En desarrollo.** El tutor ya funciona con IA real de punta a punta: la página (menú de
 chats, conversación y pizarra) le manda cada mensaje a `POST /api/chat`, que limpia la
-foto si viene, consulta la cadena de proveedores (Groq → Gemini → Mistral) con las
+foto si viene, consulta la cadena de proveedores (Groq → Gemini) con las
 instrucciones del tutor y revisa que la respuesta no regale el resultado. Faltan los
 límites de uso, la base de datos y el banco de ejercicios. El plan de desarrollo está en [`docs/PLAN.md`](docs/PLAN.md).
 

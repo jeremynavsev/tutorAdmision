@@ -50,7 +50,7 @@ MENSAJES = [{"role": "user", "content": "hola"}]
 
 
 # Sin respaldos de Gemini, para que estas pruebas hablen solo del orden entre proveedores.
-TODAS = dict(gemini_api_key="g", groq_api_key="q", mistral_api_key="m", gemini_modelos_respaldo=())
+TODAS = dict(gemini_api_key="g", groq_api_key="q", gemini_modelos_respaldo=())
 
 
 def nombres(config: Configuracion) -> list[str]:
@@ -58,22 +58,23 @@ def nombres(config: Configuracion) -> list[str]:
 
 
 def test_por_defecto_groq_va_primero():
-    assert nombres(Configuracion(**TODAS)) == ["groq", "gemini", "mistral"]
+    assert nombres(Configuracion(**TODAS)) == ["groq", "gemini"]
 
 
 def test_solo_entran_los_proveedores_con_llave():
-    config = Configuracion(gemini_api_key="g", groq_api_key="", mistral_api_key="m", gemini_modelos_respaldo=())
-    assert nombres(config) == ["gemini", "mistral"]
+    config = Configuracion(gemini_api_key="g", groq_api_key="", gemini_modelos_respaldo=())
+    assert nombres(config) == ["gemini"]
 
 
 def test_el_orden_se_puede_cambiar():
-    config = Configuracion(**TODAS, orden_proveedores=("mistral", "gemini", "groq"))
-    assert nombres(config) == ["mistral", "gemini", "groq"]
+    config = Configuracion(**TODAS, orden_proveedores=("gemini", "groq"))
+    assert nombres(config) == ["gemini", "groq"]
 
 
 def test_los_que_no_se_nombran_van_al_final_y_los_desconocidos_se_ignoran():
+    # Un nombre que no existe (por ejemplo, de un .env viejo) se ignora sin romper nada.
     config = Configuracion(**TODAS, orden_proveedores=("gemini", "deepseek"))
-    assert nombres(config) == ["gemini", "groq", "mistral"]
+    assert nombres(config) == ["gemini", "groq"]
 
 
 def test_con_foto_la_cadena_por_defecto_llega_a_gemini():
@@ -82,7 +83,7 @@ def test_con_foto_la_cadena_por_defecto_llega_a_gemini():
     r = completar(
         con_foto,
         proveedores=proveedores_disponibles(Configuracion(**TODAS)),
-        crear_cliente=fabrica({"groq": "{}", "gemini": '{"ok": 1}', "mistral": "{}"}, llamadas),
+        crear_cliente=fabrica({"groq": "{}", "gemini": '{"ok": 1}'}, llamadas),
     )
     assert r.proveedor == "gemini" and "groq" not in llamadas
 
@@ -159,10 +160,10 @@ def test_con_foto_se_salta_al_que_no_lee_imagenes():
     ]
     r = completar(
         con_foto,
-        proveedores=[proveedor("groq", acepta_imagenes=False), proveedor("mistral")],
-        crear_cliente=fabrica({"groq": '{"ok": 1}', "mistral": '{"ok": 2}'}, llamadas),
+        proveedores=[proveedor("groq", acepta_imagenes=False), proveedor("gemini")],
+        crear_cliente=fabrica({"groq": '{"ok": 1}', "gemini": '{"ok": 2}'}, llamadas),
     )
-    assert r.proveedor == "mistral"
+    assert r.proveedor == "gemini"
     assert "groq" not in llamadas
 
 
@@ -220,10 +221,10 @@ def test_un_400_sin_extras_si_cuenta_como_fallo():
     error = openai.BadRequestError("no", response=httpx.Response(400, request=PETICION), body=None)
     r = completar(
         MENSAJES,
-        proveedores=[proveedor("groq"), proveedor("mistral")],
-        crear_cliente=fabrica({"groq": error, "mistral": '{"ok": 1}'}, {}),
+        proveedores=[proveedor("groq"), proveedor("gemini")],
+        crear_cliente=fabrica({"groq": error, "gemini": '{"ok": 1}'}, {}),
     )
-    assert r.proveedor == "mistral"
+    assert r.proveedor == "gemini"
 
 
 # ---------- Modelos de respaldo de Gemini ----------
@@ -234,8 +235,8 @@ def etiquetas(config: Configuracion) -> list[str]:
 
 
 def test_los_respaldos_de_gemini_van_justo_despues_del_principal():
-    config = Configuracion(gemini_api_key="g", groq_api_key="q", mistral_api_key="m")
-    assert etiquetas(config) == ["groq", "gemini", "gemini/gemini-3.5-flash", "gemini/gemini-3.1-flash-lite", "mistral"]
+    config = Configuracion(gemini_api_key="g", groq_api_key="q")
+    assert etiquetas(config) == ["groq", "gemini", "gemini/gemini-3.5-flash", "gemini/gemini-3.1-flash-lite"]
 
 
 def test_los_respaldos_usan_la_misma_llave_y_leen_fotos():
