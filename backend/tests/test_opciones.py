@@ -112,3 +112,11 @@ def test_si_insiste_se_envia_la_respuesta_segura_de_lectura(modelo, banco_lector
     modelo.responde(senala, senala)
     respuesta = responder(entrada("no entendí", [{"autor": "estudiante", "texto": PEGADO}]))
     assert respuesta.texto == RESPUESTA_SEGURA_OPCIONES
+
+
+def test_si_el_estudiante_se_equivoco_la_respuesta_segura_lo_dice(modelo, banco_lector):
+    senala = {"texto": "No, la B no: el texto habla de leer con un propósito.", "anotaciones": []}
+    modelo.responde(senala, senala)
+    historial = [{"autor": "estudiante", "texto": PEGADO}, {"autor": "tutor", "texto": "¿Qué dice el texto?"}]
+    respuesta = responder(entrada("es la B", historial))
+    assert respuesta.texto == f"Todavía no. {RESPUESTA_SEGURA_OPCIONES}"

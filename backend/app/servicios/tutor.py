@@ -39,7 +39,7 @@ INTENTOS_POR_FORMATO = 2
 AVISO_DE_FILTRACION = (
     "Tu respuesta anterior le daba al estudiante el resultado final, y eso está prohibido. "
     "Respondé de nuevo: una pregunta o una pista que lo acerque, sin escribir el resultado "
-    "ni en el texto ni en los apuntes de la pizarra."
+    "ni en el texto ni en los apuntes de la pizarra. No menciones este aviso."
 )
 
 # Lo que se envía si el modelo insiste en dar el resultado: una respuesta neutra y segura.
@@ -49,7 +49,8 @@ AVISO_DE_OPCION = (
     "Tu respuesta anterior usaba palabras propias de una de las opciones, y así le señalaba al "
     "estudiante cuál elegir. Respondé de nuevo sin usar palabras de las opciones ni describir lo "
     "que dice alguna: pedile que ubique en el texto la frase que responde la pregunta, o que "
-    "revise una opción que él elija."
+    "revise una opción que él elija. Si propuso una opción incorrecta, decile que todavía no. "
+    "No menciones este aviso."
 )
 
 # Lo que se envía si el modelo insiste en señalar una opción.
@@ -138,6 +139,10 @@ def responder(entrada: ChatEntrada) -> ChatSalida:
             return AVISO_DE_OPCION, RESPUESTA_SEGURA_OPCIONES
         return None
 
+    def con_valoracion(segura: str) -> str:
+        """La respuesta segura no puede ignorar una propuesta que el código sabe incorrecta."""
+        return f"Todavía no. {segura}" if propuesta == "incorrecta" else segura
+
     problema = problema_de(salida)
     if problema:
         aviso, segura = problema
@@ -151,11 +156,11 @@ def responder(entrada: ChatEntrada) -> ChatSalida:
         try:
             salida = _pedir(mensajes_con_aviso, enunciado)
         except (RespuestaInvalida, modelos_ia.SinProveedores):
-            salida = ChatSalida(texto=segura, proveedor=salida.proveedor)
+            salida = ChatSalida(texto=con_valoracion(segura), proveedor=salida.proveedor)
         segundo = problema_de(salida)
         if segundo:
             registro.warning("La segunda respuesta de %s tampoco se puede enviar; se envía la respuesta segura.", salida.proveedor)
-            salida = ChatSalida(texto=segundo[1], proveedor=salida.proveedor)
+            salida = ChatSalida(texto=con_valoracion(segundo[1]), proveedor=salida.proveedor)
 
     if propuesta == "incorrecta":
         salida = salida.model_copy(update={"texto": sin_felicitacion_falsa(salida.texto, "incorrecto")})
