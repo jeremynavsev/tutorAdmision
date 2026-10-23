@@ -260,3 +260,13 @@ def test_en_lectura_la_conexion_la_hace_el_estudiante():
 
 def test_las_instrucciones_prohiben_usar_palabras_clave_de_las_opciones():
     assert "Tampoco usés las palabras clave de las opciones" in INSTRUCCIONES_DEL_TUTOR
+
+
+def test_las_pistas_llevan_el_porque_y_no_hace_las_cuentas_del_estudiante():
+    assert "siempre lleva la idea, no solo el paso" in INSTRUCCIONES_DEL_TUTOR
+    assert "no lo sumés vos" in INSTRUCCIONES_DEL_TUTOR
+
+
+def test_en_lectura_explica_el_metodo_con_un_ejemplo_inventado():
+    assert "Si el estudiante no entiende qué tienen que ver las opciones con el texto" in INSTRUCCIONES_DEL_TUTOR
+    assert "Nunca repitás la misma pregunta" in INSTRUCCIONES_DEL_TUTOR

@@ -521,5 +521,64 @@
         "no_debe_revelar": true
       }
     ]
+  },
+  {
+    "id": "no-sabe-por-donde-empezar",
+    "descripcion": "Problema de horas de trabajo inventado. Ante 'no sé por dónde empezar', la pista explica el porqué (pensar en horas de trabajo) y no es solo una orden; el tutor no hace las cuentas que le tocan al estudiante (no suma las horas por él).",
+    "revelaria": [
+      "\\b4\\s+panaderos",
+      "(?:la|opci[oó]n)\\s+B\\b",
+      "panaderos\\D{0,15}\\b4\\b"
+    ],
+    "turnos": [
+      {
+        "estudiante": "En una panadería cada panadero puede hornear, en una hora, 4 pasteles o 30 galletas. Si tienen 2 horas para un pedido de 16 pasteles y 120 galletas, ¿cuántos panaderos, como mínimo, necesitan?\nA) 3\nB) 4\nC) 6\nD) 8",
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "No sé por dónde empezar",
+        "felicita": false,
+        "pista": true,
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "para los pasteles son 4 horas",
+        "valora": "bien",
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "y para las galletas también 4 horas",
+        "valora": "bien",
+        "no_debe_revelar": true,
+        "no_debe": [
+          "\\b8\\s+horas",
+          "en total (?:son |hay |tenés )?8\\b"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "lectura-no-entiende-las-opciones",
+    "descripcion": "Lectura inventada: el estudiante ubica la frase clave pero no entiende qué tiene que ver con las opciones. El tutor explica el método con un ejemplo distinto y no repite la pregunta; tampoco señala la opción correcta.",
+    "revelaria": [
+      "\\b(?:la|opci[oó]n|respuesta(?:\\s+es)?)\\s+\\(?B\\)?(?![a-záéíóúñ])",
+      "\\bcuidados[oa]s?\\b"
+    ],
+    "turnos": [
+      {
+        "estudiante": "Luis revisa cada respuesta dos veces antes de entregar un examen.\n¿Qué característica tiene Luis?\nA) Es rápido.\nB) Es cuidadoso.\nC) Es olvidadizo.\nD) Es competitivo.",
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "la frase clave es que revisa cada respuesta dos veces",
+        "valora": "bien",
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "ya te dije la frase, pero no entiendo qué tiene que ver con las opciones",
+        "felicita": false,
+        "no_debe_revelar": true
+      }
+    ]
   }
 ]

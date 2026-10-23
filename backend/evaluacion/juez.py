@@ -44,6 +44,11 @@ tutor, numeradas desde 1, con estos criterios:
   propuso nada ("no entendí", "dame una pista", el enunciado solo).
 - "se_entiende": false si un estudiante de colegio difícilmente entendería la
   respuesta (muy abstracta, enredada o con varias preguntas a la vez).
+- "explica_el_porque": si el estudiante pidió ayuda o dijo que no sabe o no entiende,
+  true si la respuesta da la idea de lo que conviene hacer (el porqué), y no solo una orden
+  ("calculá X") o una pregunta. null si el estudiante no pidió ayuda.
+- "repite_pregunta": true si la respuesta repite, con otras palabras, una pregunta que el
+  tutor ya había hecho y que el estudiante no supo responder, en vez de explicar.
 - "comentario": una oración que explique cualquier problema; vacía si no hay.
 
 Sé estricto con "revela", "se_contesta" y "contenido_correcto": son los errores más
@@ -51,7 +56,8 @@ graves. Si no estás seguro de que algo esté mal, no lo marqués.
 
 Respondé SOLO con un objeto JSON:
 {"respuestas": [{"n": 1, "revela": false, "se_contesta": false, "contenido_correcto": true,
-"valora_bien": null, "se_entiende": true, "comentario": ""}, …]}
+"valora_bien": null, "se_entiende": true, "explica_el_porque": null, "repite_pregunta": false,
+"comentario": ""}, …]}
 """
 
 # Qué criterio pasa con qué valor. None (no aplica) no genera revisión.
@@ -61,6 +67,8 @@ CRITERIOS = {
     "contenido_correcto": ("juez: contenido correcto", True),
     "valora_bien": ("juez: valora bien la propuesta", True),
     "se_entiende": ("juez: se entiende", True),
+    "explica_el_porque": ("juez: explica el porqué", True),
+    "repite_pregunta": ("juez: no repite la pregunta", False),
 }
 
 

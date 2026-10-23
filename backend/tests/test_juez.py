@@ -72,3 +72,10 @@ def test_la_referencia_trae_la_clave_y_los_pasos():
     e = Ejercicio(id="x", tema="t", area="Razonamiento matemático", enunciado="¿?", opciones=["9", "10"],
                   solucion={"tipo": "opcion", "valor": "B"}, pasos=["Sumar horas.", "Dividir entre 3."], errores_comunes=[])
     assert referencia(e) == "Respuesta correcta: B) 10\nCómo se resuelve: Sumar horas. Dividir entre 3."
+
+
+def test_los_criterios_nuevos_tambien_se_califican():
+    texto = respuesta_del_juez({"explica_el_porque": False, "repite_pregunta": True, "comentario": "Solo repite la pregunta."})
+    (calificaciones,) = juez.interpretar(texto, 1)
+    fallas = {c.nombre for c in calificaciones if not c.paso}
+    assert fallas == {"juez: explica el porqué", "juez: no repite la pregunta"}
