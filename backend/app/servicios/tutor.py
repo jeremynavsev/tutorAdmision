@@ -10,7 +10,9 @@ Pasos de ``responder``:
    errores comunes van en privado en las instrucciones. Si el problema es uno
    del banco, su clave se usa para verificar la respuesta. Si se conoce la
    respuesta y el estudiante propuso una, el código le dice al modelo si es
-   correcta, y si no lo es le quita un "¡Correcto!" a la respuesta.
+   correcta, y si no lo es le quita un "¡Correcto!" a la respuesta. Si ya la había
+   resuelto en un mensaje anterior, se le recuerda al modelo para que no vuelva a
+   empezar con pistas.
 3. Se arma la conversación y se consulta la cadena de proveedores.
 4. Si el modelo devuelve algo que no es el JSON esperado, se le pide de nuevo.
 5. Se revisa que la respuesta no regale el resultado ni señale una opción con
@@ -30,7 +32,7 @@ from app.servicios.agente import RespuestaInvalida, armar_conversacion, interpre
 from app.servicios.imagenes import limpiar_y_reducir
 from app.servicios.privacidad import aviso_de_datos_ocultos, ocultar
 from app.servicios.opciones import opcion_senalada
-from app.servicios.verificador import filtra_la_respuesta, revisar_propuesta
+from app.servicios.verificador import es_el_problema, filtra_la_respuesta, revisar_propuesta, ya_lo_resolvio
 
 registro = logging.getLogger(__name__)
 
@@ -118,7 +120,14 @@ def responder(entrada: ChatEntrada) -> ChatSalida:
     # Si se conoce la respuesta, el código juzga lo que propuso el estudiante: el modelo a
     # veces confunde un acierto con un error (o al revés).
     # En el primer mensaje todavía no hay pizarra: si es del banco, se usa su enunciado.
-    propuesta = revisar_propuesta(entrada.mensaje, enunciado or (del_banco.enunciado if del_banco else None), solucion, opciones)
+    del_problema = enunciado or (del_banco.enunciado if del_banco else None)
+    propuesta = revisar_propuesta(entrada.mensaje, del_problema, solucion, opciones)
+    # Si ya lo resolvió antes, se le recuerda al modelo: si no, cuando el estudiante pregunta
+    # por qué o pide la respuesta, vuelve a empezar con pistas. Un problema nuevo no cuenta.
+    if propuesta is None and not entrada.imagen_base64 and not es_el_problema(entrada.mensaje):
+        anteriores = [m.texto for m in entrada.historial if m.autor == "estudiante"]
+        if ya_lo_resolvio(anteriores, del_problema, solucion, opciones):
+            propuesta = "resuelto"
     mensajes = armar_conversacion(entrada, ejercicios_parecidos, propuesta)
     salida = _pedir(mensajes, enunciado)
 

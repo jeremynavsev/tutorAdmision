@@ -270,3 +270,9 @@ def test_las_pistas_llevan_el_porque_y_no_hace_las_cuentas_del_estudiante():
 def test_en_lectura_explica_el_metodo_con_un_ejemplo_inventado():
     assert "Si el estudiante no entiende qué tienen que ver las opciones con el texto" in INSTRUCCIONES_DEL_TUTOR
     assert "Nunca repitás la misma pregunta" in INSTRUCCIONES_DEL_TUTOR
+
+
+def test_un_ejercicio_resuelto_no_vuelve_a_empezar():
+    assert "5. Si te pide la respuesta y todavía no la dijo" in INSTRUCCIONES_DEL_TUTOR
+    assert "el ejercicio está resuelto y no\n    volvés a empezar con pistas" in INSTRUCCIONES_DEL_TUTOR
+    assert "si le quedó claro o si quiere que se lo expliqués de\n    otra manera" in INSTRUCCIONES_DEL_TUTOR

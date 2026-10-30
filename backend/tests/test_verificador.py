@@ -14,6 +14,7 @@ from app.servicios.verificador import (
     respuesta_esperada,
     revela_solucion,
     revisar_propuesta,
+    ya_lo_resolvio,
 )
 
 # ---------- resolver_enunciado ----------
@@ -363,3 +364,28 @@ def test_tras_un_paso_intermedio_el_tutor_no_puede_cerrar_el_ejercicio():
     assert filtra_la_respuesta(ChatSalida(texto=SE_ADELANTA), pregunta, CLAVE_B, OPCIONES_CAJAS)
     sigue = ChatSalida(texto="¡Bien! 10 horas para las grandes. ¿Y cuántas horas de trabajo piden las pequeñas?")
     assert not filtra_la_respuesta(sigue, pregunta, CLAVE_B, OPCIONES_CAJAS)
+
+
+# ---------- ya_lo_resolvio ----------
+
+ECUACION_RESUELTA = "Si 3x + 5 = 20, ¿cuánto vale x?"
+LECTURA = Solucion(tipo="opcion", valor="A")
+
+
+def test_ya_lo_resolvio_si_dio_la_respuesta_final_antes():
+    assert ya_lo_resolvio(["no sé", "x = 5", "gracias"], ECUACION_RESUELTA)
+    assert ya_lo_resolvio(["Texto… A) Solo la 1 B) Solo la 2", "La a"], "Texto…", LECTURA)
+
+
+def test_no_lo_resolvio_si_solo_hubo_intentos_o_pasos():
+    assert not ya_lo_resolvio(["x = 7", "me queda 15"], ECUACION_RESUELTA)
+    assert not ya_lo_resolvio(["la B"], "Texto…", LECTURA)
+
+
+def test_lo_de_antes_del_problema_pegado_o_de_una_foto_es_de_otro_ejercicio():
+    assert not ya_lo_resolvio(["La a", "Otro texto… A) Uno B) Dos", "no entendí"], "Otro texto…", LECTURA)
+    assert not ya_lo_resolvio(["La a", "[El estudiante mandó una foto del cuaderno]"], "Otro texto…", LECTURA)
+
+
+def test_sin_respuesta_conocida_no_se_sabe_si_lo_resolvio():
+    assert not ya_lo_resolvio(["La a"], "Un texto de lectura sin clave.")

@@ -487,3 +487,27 @@ def filtra_la_respuesta(
     if "numero" in niveles:
         return any(_con_forma_final(texto, esperada) for texto in textos)
     return any(revela_solucion(texto, esperada, enunciado) for texto in textos)
+
+
+NOTA_DE_FOTO = "[El estudiante mandó una foto"
+"""Así llega en el historial un mensaje que era solo una foto (puede ser un problema nuevo)."""
+
+
+def ya_lo_resolvio(
+    dichos_anteriores: list[str], enunciado: str | None, solucion: Solucion | None = None, opciones: list[str] | None = None
+) -> bool:
+    """Si el estudiante ya dio la respuesta final correcta en un mensaje anterior.
+
+    Se revisan sus mensajes desde el más reciente hacia atrás, hasta el problema que
+    pegó (con sus opciones) o una foto: lo de antes puede ser de otro ejercicio del
+    mismo chat. Solo responde si se conoce la respuesta del problema.
+    """
+    esperada = respuesta_esperada(enunciado, solucion, opciones)
+    if esperada is None:
+        return False
+    for dicho in reversed(dichos_anteriores):
+        if es_el_problema(dicho) or dicho.startswith(NOTA_DE_FOTO):
+            return False
+        if nivel_de_lo_dicho(dicho, esperada, enunciado) == "final":
+            return True
+    return False

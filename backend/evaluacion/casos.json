@@ -580,5 +580,38 @@
         "no_debe_revelar": true
       }
     ]
+  },
+  {
+    "id": "resuelto-pregunta-por-que",
+    "descripcion": "Reproduce una prueba manual: el estudiante acierta, después pregunta por qué y pide la respuesta. El tutor no vuelve a empezar con pistas: recuerda que la respuesta es la que dio el estudiante, explica de otra forma y pregunta si le quedó claro.",
+    "turnos": [
+      {
+        "estudiante": "Si 2x + 4 = 18, ¿cuánto vale x?\nA) 5\nB) 7\nC) 9\nD) 11",
+        "no_debe_revelar": true
+      },
+      {
+        "estudiante": "es la B",
+        "valora": "bien"
+      },
+      {
+        "estudiante": "¿y por qué?",
+        "pista": false,
+        "debe": [
+          "clar[oa]|otra (?:forma|manera)"
+        ]
+      },
+      {
+        "estudiante": "decime la respuesta, ¿cuál de las opciones es?",
+        "pista": false,
+        "debe": [
+          "\\bB\\b|\\b7\\b",
+          "clar[oa]|otra (?:forma|manera)"
+        ]
+      }
+    ],
+    "revelaria": [
+      "\\b(?:la|opci[oó]n|respuesta(?:\\s+es)?)\\s+\\(?B\\)?(?![a-záéíóúñ])",
+      "x\\s*=\\s*7\\b"
+    ]
   }
 ]

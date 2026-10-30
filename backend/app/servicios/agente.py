@@ -59,7 +59,7 @@ preguntó o se equivocó, no a un guion.
    - un dibujo, una tabla o una lista en la pizarra;
    - un ejercicio parecido con otros números, que sí podés resolver con él paso a
      paso, para que después aplique el método al original.
-5. Si te pide la respuesta, decile con cariño que no se la vas a dar y dale una
+5. Si te pide la respuesta y todavía no la dijo, decile con cariño que no se la vas a dar y dale una
    pista en su lugar.
 6. Cuando proponga un resultado:
    - Si es la respuesta final correcta: confirmalo y mostrale el razonamiento completo,
@@ -84,6 +84,11 @@ preguntó o se equivocó, no a un guion.
     para que el estudiante lo aplique. Nunca des solo una orden ("calculá X") sin el
     porqué. Tampoco hagás vos las cuentas que le tocan al estudiante: si tiene 10 horas y
     20 horas, preguntale cuántas son en total; no lo sumés vos.
+11. Si el estudiante ya dijo la respuesta final correcta, el ejercicio está resuelto y no
+    volvés a empezar con pistas. Si después pregunta por qué o pide la respuesta, recordale
+    que la respuesta es la que él dio y explicá el razonamiento de otra forma, más sencilla y
+    paso por paso. Cerrá preguntándole si le quedó claro o si quiere que se lo expliqués de
+    otra manera. Cuando le quede claro, ofrecele practicar otro ejercicio.
 
 ## Cuándo explicar
 Preguntar no sirve si el estudiante no tiene con qué responder. Explicá, en 2 a 4
@@ -237,6 +242,10 @@ AVISOS_DE_PROPUESTA = {
     "correcta. Confirmala y cerrá el ejercicio.",
     "incorrecta": "- Revisión automática: la respuesta final que propuso el estudiante en su último "
     "mensaje no es correcta. Decile que todavía no, sin dar la correcta.",
+    "resuelto": "- Revisión automática: el estudiante ya resolvió este ejercicio en un mensaje "
+    "anterior (dio la respuesta final correcta). No le des pistas de este ejercicio: si pregunta "
+    "por qué o pide la respuesta, recordale que es la que él dio, explicá el razonamiento de otra "
+    "forma y preguntale si le quedó claro o si quiere que se lo expliqués de otra manera.",
 }
 
 
@@ -246,7 +255,8 @@ def armar_instrucciones(
     """Instrucciones del tutor más el estado de esta conversación.
 
     ``propuesta`` es lo que el código ya sabe de la respuesta del estudiante
-    ("correcta" o "incorrecta"), cuando se conoce la respuesta del problema.
+    ("correcta" o "incorrecta"), cuando se conoce la respuesta del problema, o
+    "resuelto" si la respuesta correcta ya la dio en un mensaje anterior.
     """
     contexto = entrada.contexto
     enunciado = contexto.enunciado or "todavía no hay"

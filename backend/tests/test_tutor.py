@@ -158,3 +158,30 @@ def test_un_paso_intermedio_no_se_juzga(modelo):
     salida = responder(ChatEntrada(mensaje="me queda 15", contexto={"enunciado": ECUACION}))
     assert "Revisión automática" not in modelo.llamadas[0][0]["content"]
     assert salida.texto == "¡Bien! ¿Y ahora?"
+
+
+# ---------- Ejercicio ya resuelto ----------
+
+YA_RESUELTO = "ya resolvió este ejercicio en un mensaje anterior"
+
+
+def test_si_ya_lo_resolvio_se_lo_recuerda_al_modelo(modelo):
+    modelo.responde({"texto": "La respuesta es la que diste: x = 5. ¿Te quedó claro?", "anotaciones": []})
+    historial = [{"autor": "estudiante", "texto": "x = 5"}, {"autor": "tutor", "texto": "¡Eso es! ¿Otro?"}]
+    salida = responder(entrada("¿y por qué?", historial=historial))
+    assert YA_RESUELTO in modelo.llamadas[0][0]["content"]
+    assert salida.texto.startswith("La respuesta es la que diste")  # confirmarla no es filtrar
+
+
+def test_si_no_lo_ha_resuelto_no_hay_aviso(modelo):
+    modelo.responde(PISTA)
+    historial = [{"autor": "estudiante", "texto": "x = 7"}, {"autor": "tutor", "texto": "Todavía no."}]
+    responder(entrada("dame la respuesta", historial=historial))
+    assert YA_RESUELTO not in modelo.llamadas[0][0]["content"]
+
+
+def test_un_problema_nuevo_no_cuenta_como_resuelto(modelo):
+    modelo.responde(PISTA)
+    historial = [{"autor": "estudiante", "texto": "x = 5"}, {"autor": "tutor", "texto": "¡Eso es! ¿Otro?"}]
+    responder(entrada("Si 3x + 5 = 20, ¿cuánto vale x? A) 3 B) 5 C) 7", historial=historial))
+    assert YA_RESUELTO not in modelo.llamadas[0][0]["content"]
