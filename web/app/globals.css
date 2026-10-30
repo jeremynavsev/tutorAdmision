@@ -1123,15 +1123,20 @@ button {
   font-size: var(--texto-pequeno);
 }
 
-/* La caja del redactor: campo arriba, acciones abajo. */
+/* La caja del redactor (diseño de PromptBar, de React Bits): campo arriba, acciones abajo. */
 .redactor-caja {
-  display: grid;
-  gap: 0.25rem;
-  padding: 0.5rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* Sin esto, el ancho por defecto del textarea ensancha la caja en celular. */
+  min-width: 0;
+  gap: 0.5rem;
+  padding: 0.75rem;
   border: 1px solid var(--musgo);
   border-radius: 16px;
   background: var(--papel);
   box-shadow: var(--sombra);
+  cursor: text;
   transition: border-color var(--rapido), background-color var(--rapido);
 }
 
@@ -1141,21 +1146,30 @@ button {
 }
 
 .campo {
+  display: block;
   width: 100%;
-  min-height: 44px;
-  max-height: 10rem;
-  padding: 0.5rem 0.5rem;
+  min-height: 1.5rem;
+  max-height: calc(1.5rem * 6);
+  padding: 0 0.25rem;
   border: 0;
-  border-radius: var(--radio-campo);
+  border-radius: 4px;
   background: transparent;
   color: var(--carbon);
   font: inherit;
-  line-height: 1.45;
+  line-height: 1.5rem;
   resize: none;
+  overflow-wrap: anywhere;
 }
 
 .campo::placeholder {
   color: var(--carbon-suave);
+}
+
+/* Vacío, el texto de ayuda cabe en una línea: sin barra de scroll en celular. */
+.campo:placeholder-shown {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .campo:disabled {
@@ -1167,19 +1181,19 @@ button {
 }
 
 .campo:focus-visible {
-  outline: 3px solid var(--anillo);
-  outline-offset: 0;
+  outline: none;
 }
 
 .redactor-fila {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .redactor-nota {
   flex: 1;
   min-width: 0;
+  padding: 0 0.25rem;
   font-size: 0.8125rem;
   color: var(--carbon-suave);
   white-space: nowrap;
@@ -1193,9 +1207,169 @@ button {
   }
 }
 
-.entrada-archivo:focus-visible + .boton-icono {
+.redactor-herramienta,
+.redactor-enviar {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radio-campo);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.redactor-herramienta {
+  background: transparent;
+  color: var(--carbon-suave);
+  transition: background-color var(--rapido), color var(--rapido), transform 160ms var(--curva);
+}
+
+.redactor-herramienta .icono {
+  width: 18px;
+  height: 18px;
+}
+
+.redactor-herramienta[data-activo] {
+  background: var(--helecho);
+  color: var(--cafetal);
+}
+
+.redactor-herramienta:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.redactor-herramienta:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .redactor-herramienta:hover:not(:disabled) {
+    background: var(--helecho);
+    color: var(--cafetal);
+  }
+}
+
+/* El botón de enviar: apagado sin texto; con el color principal cuando hay qué enviar. */
+.redactor-enviar {
+  background: color-mix(in srgb, var(--carbon) 10%, var(--papel));
+  color: color-mix(in srgb, var(--carbon) 45%, var(--papel));
+  transition: background-color 200ms ease, color 200ms ease, transform 160ms var(--curva);
+}
+
+.redactor-enviar .icono {
+  width: 18px;
+  height: 18px;
+}
+
+.redactor-enviar:disabled {
+  cursor: default;
+}
+
+.redactor-enviar[data-listo] {
+  background: var(--cafetal);
+  color: var(--sobre-cafetal);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .redactor-enviar[data-listo]:hover:not(:disabled) {
+    background: var(--bosque);
+  }
+}
+
+.redactor-enviar[data-presionado] {
+  transform: scale(0.96);
+}
+
+.redactor-herramienta:focus-visible,
+.redactor-enviar:focus-visible,
+.redactor-menu-fila:focus-visible {
   outline: 3px solid var(--anillo);
   outline-offset: 2px;
+}
+
+/* Menú del "+": aparece sobre la caja. */
+.redactor-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 2;
+  width: min(20rem, 100%);
+  padding: 4px;
+  border: 1px solid var(--musgo);
+  border-radius: 12px;
+  background: var(--papel);
+  box-shadow: var(--sombra);
+  cursor: default;
+  transform-origin: bottom left;
+  animation: redactor-menu-aparece 180ms var(--curva) both;
+}
+
+@keyframes redactor-menu-aparece {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+
+.redactor-menu-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: var(--radio-campo);
+  background: transparent;
+  color: var(--carbon);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--rapido);
+}
+
+.redactor-menu-fila:hover,
+.redactor-menu-fila:focus-visible {
+  background: var(--helecho);
+}
+
+.redactor-menu-icono {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--cafetal);
+}
+
+.redactor-menu-nombre {
+  flex: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.redactor-menu-desc {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--carbon-suave);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .redactor-menu {
+    animation: none;
+  }
+
+  .redactor-herramienta:active:not(:disabled),
+  .redactor-enviar[data-presionado] {
+    transform: none;
+  }
 }
 
 /* ---------- Pizarra (panel a la derecha) ---------- */

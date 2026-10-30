@@ -39,10 +39,17 @@ export const IconoCamara = (p: Props) => (
   </Base>
 );
 
-export const IconoEnviar = (p: Props) => (
+export const IconoMas = (p: Props) => (
   <Base {...p}>
-    <path d="M5 12h13M13 6l6 6-6 6" />
+    <path d="M12 5v14M5 12h14" />
   </Base>
+);
+
+/** Flecha rellena hacia arriba, para el botón de enviar. */
+export const IconoFlechaArriba = ({ className = "icono" }: Props) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 4.5L18.5 11H14.25V19.5H9.75V11H5.5Z" />
+  </svg>
 );
 
 export const IconoCerrar = (p: Props) => (

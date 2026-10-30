@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { MAX_MENSAJE } from "@/lib/contrato";
 import { NOMBRES_DE_DATOS, encontrarDatos, ocultarDatos, type TipoDato } from "@/lib/privacidad";
-import { IconoBrujula, IconoCamara, IconoCandado, IconoEnviar, IconoLapiz } from "./Iconos";
+import { IconoBrujula, IconoCamara, IconoCandado, IconoFlechaArriba, IconoLapiz, IconoMas } from "./Iconos";
 
 const ATAJOS = [
   { texto: "No sé por dónde empezar", Icono: IconoBrujula },
@@ -22,19 +22,45 @@ type Props = {
   onFoto: (archivo: File) => void;
 };
 
-/** Atajos, botón de cámara, campo de texto y botón "Enviar". */
+/** Atajos, campo de texto, menú "+" (foto del cuaderno) y botón de enviar. */
 export default function Redactor({ ocupado, bloqueado = false, conAtajos, placeholder, onEnviar, onFoto }: Props) {
   const [texto, setTexto] = useState("");
   // Datos personales que se encontraron al intentar enviar (para preguntar antes).
   const [datosEncontrados, setDatosEncontrados] = useState<TipoDato[] | null>(null);
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [presionado, setPresionado] = useState(false);
   const campo = useRef<HTMLTextAreaElement>(null);
+  const caja = useRef<HTMLDivElement>(null);
+  const entradaFoto = useRef<HTMLInputElement>(null);
   const idCampo = useId();
-  const idFoto = useId();
+  const idMenu = useId();
 
   // Al abrir un chat, el cursor queda listo para escribir (solo con teclado físico).
   useEffect(() => {
     if (window.matchMedia("(pointer: fine)").matches) campo.current?.focus();
   }, [placeholder]);
+
+  // El menú "+" se cierra al tocar fuera de la caja o con Escape.
+  useEffect(() => {
+    if (!menuAbierto) return;
+    const alTocar = (e: PointerEvent) => {
+      if (!caja.current?.contains(e.target as Node)) setMenuAbierto(false);
+    };
+    const alTeclear = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") setMenuAbierto(false);
+    };
+    document.addEventListener("pointerdown", alTocar);
+    document.addEventListener("keydown", alTeclear);
+    return () => {
+      document.removeEventListener("pointerdown", alTocar);
+      document.removeEventListener("keydown", alTeclear);
+    };
+  }, [menuAbierto]);
+
+  function elegirFoto() {
+    setMenuAbierto(false);
+    entradaFoto.current?.click();
+  }
 
   function ajustarAltura() {
     const el = campo.current;
@@ -106,7 +132,23 @@ export default function Redactor({ ocupado, bloqueado = false, conAtajos, placeh
           </div>
         </div>
       )}
-      <div className="redactor-caja">
+      <div
+        ref={caja}
+        className="redactor-caja"
+        role="presentation"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) campo.current?.focus();
+        }}
+      >
+        {menuAbierto && (
+          <div id={idMenu} className="redactor-menu" role="menu" aria-label="Agregar">
+            <button type="button" role="menuitem" className="redactor-menu-fila" autoFocus onClick={elegirFoto}>
+              <IconoCamara className="icono redactor-menu-icono" />
+              <span className="redactor-menu-nombre">Foto del cuaderno</span>
+              <span className="redactor-menu-desc">Desde este dispositivo</span>
+            </button>
+          </div>
+        )}
         <label htmlFor={idCampo} className="solo-lectores">
           Tu mensaje para MAEstro
         </label>
@@ -124,14 +166,17 @@ export default function Redactor({ ocupado, bloqueado = false, conAtajos, placeh
             setDatosEncontrados(null);
             ajustarAltura();
           }}
+          onFocus={() => setMenuAbierto(false)}
           onKeyDown={alPresionar}
         />
         <div className="redactor-fila">
           <input
-            id={idFoto}
+            ref={entradaFoto}
             type="file"
             accept="image/*"
-            className="solo-lectores entrada-archivo"
+            className="solo-lectores"
+            tabIndex={-1}
+            aria-hidden="true"
             disabled={ocupado}
             onChange={(e) => {
               const archivo = e.target.files?.[0];
@@ -139,14 +184,37 @@ export default function Redactor({ ocupado, bloqueado = false, conAtajos, placeh
               e.target.value = "";
             }}
           />
-          <label htmlFor={idFoto} className="boton-icono" title="Mandar una foto del cuaderno">
-            <IconoCamara />
-            <span className="solo-lectores">Mandar una foto del cuaderno</span>
-          </label>
+          <button
+            type="button"
+            className="redactor-herramienta"
+            title="Agregar una foto del cuaderno"
+            aria-label="Agregar una foto del cuaderno"
+            aria-haspopup="menu"
+            aria-expanded={menuAbierto}
+            aria-controls={menuAbierto ? idMenu : undefined}
+            data-activo={menuAbierto ? "" : undefined}
+            disabled={ocupado}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setMenuAbierto((v) => !v)}
+          >
+            <IconoMas />
+          </button>
           <span className="redactor-nota">Enter para enviar · Shift+Enter para otra línea</span>
-          <button type="submit" className="boton boton-principal brillo" disabled={ocupado || !texto.trim()}>
-            {ocupado && !bloqueado ? <span className="spinner" aria-hidden="true" /> : <IconoEnviar />}
-            Enviar
+          <button
+            type="submit"
+            className="redactor-enviar"
+            aria-label="Enviar"
+            title="Enviar"
+            disabled={ocupado || !texto.trim()}
+            data-listo={texto.trim() || (ocupado && !bloqueado) ? "" : undefined}
+            data-presionado={presionado ? "" : undefined}
+            onMouseDown={(e) => e.preventDefault()}
+            onPointerDown={(e) => e.button === 0 && setPresionado(true)}
+            onPointerUp={() => setPresionado(false)}
+            onPointerLeave={() => setPresionado(false)}
+            onPointerCancel={() => setPresionado(false)}
+          >
+            {ocupado && !bloqueado ? <span className="spinner" aria-hidden="true" /> : <IconoFlechaArriba />}
           </button>
         </div>
       </div>
